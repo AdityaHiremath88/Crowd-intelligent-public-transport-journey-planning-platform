@@ -257,7 +257,7 @@ def route_activity(
         volume = [float(row[1]) for row in rows]
         transactions = [float(row[2]) for row in rows]
         return {
-            "status": "AVAILABLE" if rows else "UNAVAILABLE",
+            "status": "AVAILABLE" if len(rows) >= 3 else "UNAVAILABLE",
             "route_label": canonical,
             "target_weekday": target.strftime("%A"),
             "target_hour": target.hour,
