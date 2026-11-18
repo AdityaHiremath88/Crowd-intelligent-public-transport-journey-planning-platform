@@ -34,5 +34,3 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. The frontend calls the API at `http://localhost:8000` by default. A clone without separately authorized local data can show the app shell, but server-backed analytics and journey search remain unavailable.
-
-

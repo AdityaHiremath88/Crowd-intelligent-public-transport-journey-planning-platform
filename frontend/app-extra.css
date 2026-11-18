@@ -14,4 +14,3 @@
 .live-marker.stale{background:#806d70}.live-marker .material-symbols-outlined{font-size:18px}
 .leaflet-popup-content{font:500 12px/1.5 Inter,sans-serif}.leaflet-popup-content strong{font-size:13px}
 @media(prefers-color-scheme:dark){.live-map-card{background:#22201f;border-color:#3b3532}.live-feed-summary,.live-map-note{color:#d8cbc3}.live-feed-status{background:#39312e;color:#ead6ca}.live-feed-status[data-status="HEALTHY"]{background:#18392d;color:#a9e8cc}.live-feed-status[data-status="STALE"],.live-feed-status[data-status="ERROR"]{background:#463b22;color:#f0d58d}}
-

@@ -251,5 +251,3 @@ def service_profile(date_from: date | None = None, date_to: date | None = None) 
     finally:
         con.close()
 
-
-

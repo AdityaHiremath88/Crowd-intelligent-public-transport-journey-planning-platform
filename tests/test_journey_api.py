@@ -21,5 +21,3 @@ def test_journey_api_reports_missing_gtfs_instead_of_inventing_options():
     assert unavailable.value.status_code == 503
     assert unavailable.value.detail["code"] == "GTFS_UNAVAILABLE"
 
-
-

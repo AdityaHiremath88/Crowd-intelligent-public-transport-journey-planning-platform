@@ -9,5 +9,3 @@
 | Current bounded label expansion | Small Python implementation directly over trip events; round/transfer semantics are understandable and testable | One earliest label per stop/round, no feet paths/transfers file/frequencies, may scan many departures; not equivalent to fully optimized RAPTOR | Keep for hackathon-scale direct/bounded journeys only, benchmark before claiming network-scale performance. |
 
 Algorithm sources: original [RAPTOR research](https://pubsonline.informs.org/doi/10.1287/trsc.2014.0534), [GTFS Schedule](https://gtfs.org/documentation/schedule/reference/) and [OpenTripPlanner](https://www.opentripplanner.org/). Selection should be revisited only with a feed and measured query workload; no complexity narrative replaces actual benchmarks.
-
-

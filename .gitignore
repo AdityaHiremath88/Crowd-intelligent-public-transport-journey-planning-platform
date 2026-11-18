@@ -46,5 +46,3 @@ outputs/*
 *.duckdb
 *.duckdb.wal
 *.sqlite3
-
-

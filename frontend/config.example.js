@@ -5,5 +5,3 @@ window.YUKTIX_API_BASE = window.CROWDWISE_API_BASE // legacy config alias
 // Optional alternate raster tiles. Use a provider with suitable production terms and attribution.
 window.CROWDWISE_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 window.CROWDWISE_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-
-

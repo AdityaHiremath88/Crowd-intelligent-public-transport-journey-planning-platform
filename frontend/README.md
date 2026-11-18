@@ -54,5 +54,3 @@ Most requests have a 12-second timeout; the first journey search after a backend
 ## Current implementation limits
 
 The branch contains a configurable live feed adapter and rider map, but live positions remain unavailable until the authorized provider key is configured and a real feed is successfully decoded. Static GTFS and ETM source files are not included in Git; this checkout needs authorized local datasets before stop search, nearest-stop lookup, schedules, and historical analytics can return data. Admin authentication/authorization is absent, so Operator Insights is historical analytics, not a protected operator console.
-
-

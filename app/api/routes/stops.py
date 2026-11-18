@@ -310,5 +310,3 @@ def stop_detail(stop_id: str) -> dict:
     finally:
         con.close()
 
-
-

@@ -89,5 +89,3 @@ Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/vehicles/live'
 ## Status/error handling
 
 New source states: `LIVE_OBSERVED`, `COMMUNITY_REPORTED`, `PREDICTED`, `HISTORICAL_ONLY`, `UNAVAILABLE`, `STALE`, `ERROR`. Existing historical APIs retain their established lower-case `historical` data-status fields. Expected errors: 404 unknown identifier; 409 duplicate/review-missing mapping; 422 invalid request; 429 rate-limited submission; 503 missing data/feed/ETA. Some list endpoints return HTTP 200 with explicit unavailable status and an empty list. Never turn unavailable into zero crowd or comfortable.
-
-

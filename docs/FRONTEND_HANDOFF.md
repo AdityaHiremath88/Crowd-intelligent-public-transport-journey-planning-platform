@@ -214,5 +214,4 @@ The community SQLite file and `.hmac-key` sidecar must be writable and persisten
 - [Ticket activity baseline methodology and measured backtest](demand-forecast-methodology.md)
 
 
-Nearby stop lookup: POST /api/v1/stops/nearby accepts a one-time user-requested coordinate, returns the nearest validated GTFS stop within 25 km, and does not store the coordinate. The route is unavailable until validated static GTFS is installed.
-
+Nearby stop lookup: POST /api/v1/stops/nearby accepts a one-time user-requested coordinate, returns the nearest validated GTFS stop within 25 km, and does not store the coordinate. The route is unavailable until validated static GTFS is installed.

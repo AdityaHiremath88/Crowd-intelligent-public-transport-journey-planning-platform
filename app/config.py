@@ -56,5 +56,3 @@ CORS_ORIGINS = [
     if origin.strip()
 ]
 
-
-

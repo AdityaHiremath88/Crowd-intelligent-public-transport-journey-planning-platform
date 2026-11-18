@@ -42,5 +42,3 @@ Missing processed ETM or required aggregates return HTTP 503. Missing/invalid GT
 ## Deployment shape
 
 One Uvicorn process serves the monolith and reads a mounted DuckDB file. The container runs as non-root and has a readiness health check. DuckDB is an embedded analytical database; multi-process write concurrency is not a target. Run ingestion as a controlled offline job, then deploy the resulting database read-only where possible. Docker build/runtime still requires verification on a host with Docker installed.
-
-

@@ -64,5 +64,3 @@ def test_invalid_etm_schema_rolls_back_previous_processed_tables(tmp_path):
         assert con.execute("SELECT count(*) FROM etm_records").fetchone()[0] == 2
     assert after_hash == before_hash
 
-
-

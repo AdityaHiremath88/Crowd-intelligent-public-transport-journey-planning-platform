@@ -156,5 +156,3 @@ def methodology() -> MethodologyResponse:
             "raw transaction count alone is insufficient."
         ),
     )
-
-

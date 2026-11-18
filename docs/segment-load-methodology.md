@@ -35,5 +35,3 @@ The estimator requires an explicit `expected_trip_id`, unique increasing trip st
 - APC/manual validation and vehicle capacity are absent.
 
 The estimator currently sums only known ticketed journeys; it cannot correct coverage bias or estimate missing passengers. Unknown data must not be imputed as zero or a low crowd level.
-
-

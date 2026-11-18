@@ -169,5 +169,4 @@ Purpose: find the nearest validated static GTFS stop to a user-submitted one-tim
 
 ### 30. GET /api/v1/vehicles/buses/live 
 
-Compatibility alias for GET /api/v1/vehicles/live; response semantics and freshness fields are identical.
-
+Compatibility alias for GET /api/v1/vehicles/live; response semantics and freshness fields are identical.

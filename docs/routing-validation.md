@@ -26,5 +26,3 @@ For every returned option, validate in tests that all legs follow ordered GTFS s
 - GTFS times may be rough approximations per OTD; calendar feasibility does not guarantee a bus actually operates as listed.
 
 Next: add random tiny feed property tests, compare against a trusted small-feed reference router, validate every generated journey end-to-end, and performance test on an authorized full feed.
-
-

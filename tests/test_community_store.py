@@ -87,5 +87,3 @@ def test_community_hmac_key_is_persistent_across_store_instances(tmp_path):
     assert first.secret_is_persistent and second.secret_is_persistent
     assert key_a == key_b
     assert path.with_suffix(path.suffix + ".hmac-key").exists()
-
-

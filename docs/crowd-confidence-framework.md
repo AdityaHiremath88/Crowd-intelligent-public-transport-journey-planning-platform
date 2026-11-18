@@ -32,5 +32,3 @@ The actual October export supports descriptive ticket-volume coverage (31 calend
 ## Limitations
 
 Missingness is not random: vehicles without identifiers or passenger groups not represented in tickets may systematically differ. No mathematical weighting can recover unobserved riders without external coverage data. A high ticket count alone cannot compensate for missing trip identity or poor stop matching.
-
-

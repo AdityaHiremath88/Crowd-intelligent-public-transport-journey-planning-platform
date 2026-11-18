@@ -32,5 +32,3 @@
 
 The uncompleted data-dependent items are blocked by the absence of an authorized, current GTFS archive and independent onboard ground truth. GTFS validation and routing logic are exercised with clearly synthetic fixtures, but no Delhi schedule is represented as loaded or verified. Trip reconstruction and segment-level load estimation are intentionally unavailable for the supplied ETM evidence.
 
-
-

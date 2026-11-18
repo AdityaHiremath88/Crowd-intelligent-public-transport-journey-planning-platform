@@ -214,5 +214,3 @@ def stop_presence(stop_id: str) -> PresenceAggregateResponse:
             "No exact coordinates or location history are exposed or retained.",
         ],
     )
-
-

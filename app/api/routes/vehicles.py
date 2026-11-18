@@ -119,5 +119,3 @@ def vehicle_eta_unavailable(vehicle_id: str) -> dict:
             "message": "Vehicle position alone does not support a validated stop ETA; an authorized TripUpdates feed or validated travel-time model is required.",
         },
     )
-
-

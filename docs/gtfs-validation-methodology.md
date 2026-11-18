@@ -28,5 +28,3 @@ Record source URL, publisher, retrieval timestamp, SHA-256, `feed_info` metadata
 ## Current validation result
 
 No actual Delhi ZIP was available to inspect. Only small clearly synthetic tests exercise the current importer/routing path. No statement about the actual current Delhi feed's presence of `stop_times.txt`, file counts, integrity or freshness is made.
-
-

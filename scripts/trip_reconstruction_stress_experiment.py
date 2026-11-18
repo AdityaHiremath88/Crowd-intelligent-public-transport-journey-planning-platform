@@ -83,5 +83,3 @@ if __name__ == "__main__":
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
-
-

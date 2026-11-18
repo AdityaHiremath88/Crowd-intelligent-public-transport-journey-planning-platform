@@ -217,5 +217,3 @@ def search_journeys(
         key=lambda journey: (journey.arrival_seconds, journey.transfers, journey.departure_seconds),
     )[:limit]
 
-
-

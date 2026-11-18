@@ -45,5 +45,3 @@ Request an authorized OTD/Stack feed through the legitimate account/project proc
 - [OTD documentation](https://otd.delhi.gov.in/documentation/)
 - [DTC Nov 2026 timetable page](https://dtc.delhi.gov.in/dtc/services-and-time-table)
 - [Delhi Stack catalogue](https://delhi.transportstack.in/data-services)
-
-

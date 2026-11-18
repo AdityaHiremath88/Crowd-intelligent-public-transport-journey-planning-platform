@@ -181,5 +181,3 @@ def test_service_profile_keeps_source_category_fields_uninterpreted(analytics_db
     assert result["groups"][0]["is_ac"] is True
     assert result["groups"][0]["passenger_volume"] == 6
     assert "business definitions" in result["semantic_caveat"]
-
-

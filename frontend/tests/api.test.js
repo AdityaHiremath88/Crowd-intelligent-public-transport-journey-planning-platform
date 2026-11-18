@@ -110,5 +110,3 @@ test('nearby stop lookup posts one-time coordinates to the backend without putti
     assert.deepEqual(JSON.parse(call.options.body), { latitude: 28.61, longitude: 77.21 })
   } finally { globalThis.fetch = previousFetch }
 })
-
-

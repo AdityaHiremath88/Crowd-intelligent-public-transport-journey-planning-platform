@@ -31,5 +31,3 @@ From the repository root, run the importer after replacing the locally saved ZIP
 ```
 
 Inspect `outputs/gtfs_validation.json` and confirm `usable_for_scheduled_routing` is true before publishing the refreshed database.
-
-

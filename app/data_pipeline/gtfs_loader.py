@@ -129,5 +129,3 @@ def inspect_gtfs(path: Path) -> GtfsAudit:
 def audit_as_dict(path: Path) -> dict:
     return asdict(inspect_gtfs(path))
 
-
-

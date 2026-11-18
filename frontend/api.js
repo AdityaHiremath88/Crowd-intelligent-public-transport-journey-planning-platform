@@ -53,5 +53,3 @@ export const api = {
   async liveVehicles() { return request('/api/v1/vehicles/live') },
   async realtimeStatus() { return request('/api/v1/realtime/status') }
 }
-
-

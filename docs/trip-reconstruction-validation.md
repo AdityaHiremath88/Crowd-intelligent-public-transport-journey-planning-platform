@@ -32,5 +32,3 @@ The controlled test in [trip reconstruction feasibility](trip-reconstruction-fea
 7. Apply an explicit abstention threshold. Poorly matched tickets stay unassigned and do not contribute to segment loads.
 
 No future method should infer a trip by assuming all events in one route-hour belong to one bus.
-
-

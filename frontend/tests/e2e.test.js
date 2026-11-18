@@ -228,5 +228,3 @@ test('current location is requested by the rider and sent once only to the neare
     assert.deepEqual(lookup.body, { latitude: 28.61, longitude: 77.21 })
   } finally { await context.close() }
 })
-
-

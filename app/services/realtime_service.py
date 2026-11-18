@@ -367,5 +367,3 @@ def current_snapshot() -> tuple[dict, list[dict]]:
         stale_count = max(stale_count, status.get("current_vehicle_count", 0))
     return ({**status, "status": state, "configured": configured, "authorized": authorized,
              "stale_vehicle_count": stale_count}, vehicles)
-
-

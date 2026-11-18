@@ -55,5 +55,3 @@ def rank_journeys(
             )
         )
     return sorted(ranked, key=lambda item: (item.score, item.arrival_seconds))
-
-

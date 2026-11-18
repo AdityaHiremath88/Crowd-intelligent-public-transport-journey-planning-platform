@@ -167,5 +167,3 @@ def clear_schedule_cache() -> None:
     global _cache_key, _cache_value
     _cache_key, _cache_value = None, None
 
-
-

@@ -82,5 +82,3 @@ def test_vehicle_route_transaction_context_does_not_create_trip_id():
     assert result.status == "unavailable"
     assert result.trip_id is None
     assert "not a verified boarding time" in result.reason
-
-

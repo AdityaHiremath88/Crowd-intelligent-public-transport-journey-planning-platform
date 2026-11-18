@@ -316,5 +316,3 @@ async function loadOperator(){
 }
 render()
 loadDefaults()
-
-

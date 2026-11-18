@@ -210,5 +210,3 @@ export const api = {
     return request<StopSearch>(`/api/v1/stops/map?${query}`)
   },
 }
-
-

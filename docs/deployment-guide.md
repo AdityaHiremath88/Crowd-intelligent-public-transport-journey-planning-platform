@@ -53,5 +53,3 @@ Docker is not installed in the current development environment; image build and 
 - The backend currently has no user login/authentication layer; protect network access according to the deployment context.
 - Back up the DuckDB file and pipeline JSON reports; never expose raw ticket rows as public downloads.
 - Static timetable values are scheduled estimates, not live ETAs. Live vehicle endpoint is unavailable until authorized GTFS-RT access and matching static GTFS are configured. Per-stop ETA remains unavailable without TripUpdates/validated model.
-
-

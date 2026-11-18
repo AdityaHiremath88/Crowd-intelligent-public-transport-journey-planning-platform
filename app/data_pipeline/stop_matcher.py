@@ -51,5 +51,3 @@ def candidates_for_stop(etm_name: str, gtfs_stops: list[tuple[str, str]], limit:
 def candidate_rows(etm_names: list[str], gtfs_stops: list[tuple[str, str]]) -> list[dict]:
     return [asdict(candidate) for name in etm_names for candidate in candidates_for_stop(name, gtfs_stops)]
 
-
-

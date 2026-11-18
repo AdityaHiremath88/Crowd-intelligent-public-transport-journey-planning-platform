@@ -30,5 +30,3 @@ The trip-grouping stress script constructs known synthetic truth and a missing-v
 - Smoke-test `/health`, `/ready`, OpenAPI and every documented API against the processed database.
 - Confirm errors for missing GTFS are explicit and no crowd-unavailable value defaults to zero.
 - Record Docker build/runtime as unverified until Docker is available and run on the intended deployment platform.
-
-

@@ -135,5 +135,3 @@ app.include_router(presence_router, prefix="/api/v1")
 app.include_router(vehicles_router, prefix="/api/v1")
 app.include_router(realtime_router, prefix="/api/v1")
 
-
-

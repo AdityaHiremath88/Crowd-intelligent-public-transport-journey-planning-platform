@@ -38,5 +38,3 @@ The implementation remains a bounded earliest-arrival label search. RAPTOR is a 
 ## Time-zone and ETA semantics
 
 Naive request timestamps are interpreted in the agency timezone; aware timestamps are converted. If agency timezone is absent/invalid the implementation falls back to Asia/Kolkata, and the fallback should be surfaced in a future quality response. GTFS scheduled times are approximate schedule values; no real-time predictions or traffic are applied.
-
-

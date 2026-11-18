@@ -122,5 +122,3 @@ Synthetic fixtures validate algorithms and error behavior; they are not mixed in
 - [Ticket activity forecast methodology/backtest](docs/demand-forecast-methodology.md)
 
 The Dockerfile is prepared but image build/runtime was not verified because Docker is not installed in the development environment. Mount the processed database as a read-only volume for serving and run ETL separately; details are in the deployment guide.
-
-

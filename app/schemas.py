@@ -483,5 +483,3 @@ class TicketActivityForecastResponse(BaseModel):
     evidence_quality: str
     limitations: list[str]
 
-
-

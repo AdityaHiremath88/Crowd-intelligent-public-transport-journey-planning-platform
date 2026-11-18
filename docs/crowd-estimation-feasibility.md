@@ -52,5 +52,3 @@ Current stop/route/hour/date APIs may describe ticket volume and transaction cou
 ## Research basis
 
 The FTA [2025 NTD reference manual](https://www.transit.dot.gov/sites/fta.dot.gov/files/2025-08/2025%20NTD%20Mthly-Wkly-Ref-Manual_20250828.pdf) requires APC benchmarking against manual samples for its reporting context. California DOT's [APC data improvement report](https://dot.ca.gov/-/media/dot-media/programs/research-innovation-system-information/documents/research-results/task3902-rrs-09-22-a11y.pdf) discusses equipment/AVL integration, processing and periodic manual/video validation. The peer-reviewed [bus APC empirical study](https://opentransportationjournal.com/VOLUME/13/PAGE/250/?doi=10.1126%2Fsciadv.adg2248) compares stop boarding/alighting counts to manual observations and notes errors can propagate into accumulated loads. These sources support validation practice, not a claim about Delhi APC quality.
-
-

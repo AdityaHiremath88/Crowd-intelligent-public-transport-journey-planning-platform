@@ -11,5 +11,3 @@ def test_synthetic_trip_grouping_experiment_is_reproducible_and_explicitly_synth
     assert first["synthetic_trips"] == 3
     assert first["methods"]["route_only_hour"]["false_merge_pairs"] > 0
     assert first["methods"]["vehicle_route_15min_bucket"]["false_split_pairs"] > 0
-
-

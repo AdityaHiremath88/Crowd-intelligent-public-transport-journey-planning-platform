@@ -71,5 +71,3 @@ The route/start/end unique-label counts reflect normalized strings, not authorit
 ## Review method and exclusions
 
 The audit enumerated backend source, scripts, tests, documentation, raw/processed data and DuckDB table schemas/counts. It reviewed API route implementations, Pydantic schemas, GTFS and ETM pipeline code, routing and crowd components, environment configuration and deployment files. No frontend files were read or changed. This is an implementation audit, not a security penetration test or operational agency validation.
-
-

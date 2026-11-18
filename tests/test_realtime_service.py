@@ -168,5 +168,3 @@ def test_provider_timeout_keeps_last_valid_positions_visible_as_error_cache(monk
     assert status["status"] == "ERROR"
     assert len(vehicles) == 1
     assert vehicles[0]["vehicle_id"] == "bus-1"
-
-

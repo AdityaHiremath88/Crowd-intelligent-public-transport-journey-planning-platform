@@ -37,5 +37,3 @@ Run a limited authorized onboard count study on sampled complete trips, with a m
 ## Stop/go review
 
 Every deployment candidate needs a signed data-source/license review, data-quality report, chronological evaluation, explicit limitations, API abstention behavior and reproducible model/config hashes. Until stages 1–4 pass, the customer API must keep route search unavailable or clearly scheduled-only and crowd estimates unavailable; it must never emit invented Delhi predictions.
-
-

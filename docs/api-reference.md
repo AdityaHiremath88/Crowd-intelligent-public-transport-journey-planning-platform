@@ -78,5 +78,3 @@ Each option includes scheduled legs with route/trip IDs and names, boarding/alig
 - 503 `GTFS_SERVICE_DATE_OUT_OF_RANGE`: requested local journey date falls outside the loaded GTFS calendar window; the response includes the feed window.
 
 FastAPI errors use the `{"detail": ...}` envelope; some unavailable cases contain structured codes. Community report submission, recent reports, community category aggregation, opt-in presence signals, historical ticket-activity baseline, realtime feed health, and live vehicle endpoints are now registered. Their semantics and gates are documented in the [endpoint catalog](api-endpoint-catalog.md). These features do not establish measured passenger occupancy. Journey crowd exposure and validated per-stop ETA remain unavailable.
-
-
