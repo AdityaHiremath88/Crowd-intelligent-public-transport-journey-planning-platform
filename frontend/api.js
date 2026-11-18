@@ -46,5 +46,9 @@ export const api = {
   async journeySearch(body) { return request('/api/v1/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },
   async overview() { return request('/api/v1/analytics/overview') },
   async trends() { return request('/api/v1/analytics/trends?granularity=day') },
-  async corridors() { return request('/api/v1/analytics/corridors?limit=8') }
+  async corridors() { return request('/api/v1/analytics/corridors?limit=8') },
+  async routeActivity(routeLabel, targetDatetime) {
+    const params = new URLSearchParams({ route_label: routeLabel, target_datetime: targetDatetime })
+    return request(`/api/v1/analytics/route-activity?${params}`)
+  }
 }

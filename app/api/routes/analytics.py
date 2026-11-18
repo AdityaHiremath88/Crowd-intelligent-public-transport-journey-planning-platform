@@ -209,6 +209,78 @@ def corridors(
         con.close()
 
 
+@router.get("/route-activity")
+def route_activity(
+    target_datetime: datetime,
+    route_label: str = Query(min_length=1, max_length=100),
+) -> dict:
+    """Describe historical ETM ticket activity for an exact GTFS route label.
+
+    This is intentionally not a crowd forecast: ETM timestamps are ticket
+    transaction times, and route activity does not measure onboard occupancy.
+    """
+    con = _connection()
+    try:
+        match = con.execute(
+            """SELECT route_short_name FROM gtfs_routes
+               WHERE lower(trim(route_short_name))=lower(trim(?))
+                  OR lower(trim(route_long_name))=lower(trim(?))
+               LIMIT 1""",
+            [route_label, route_label],
+        ).fetchone()
+        if not match:
+            return {
+                "status": "UNAVAILABLE", "route_label": route_label,
+                "measure": "historical_ticket_activity", "data_source": DATA_SOURCE,
+                "data_status": "historical", "comparable_days": 0,
+                "passenger_ticket_volume_mean": None, "transaction_count_mean": None,
+                "passenger_ticket_volume_range": None,
+                "limitations": ["No exact route-label match exists between ETM and GTFS."],
+            }
+        canonical = match[0]
+        target = target_datetime
+        if target.tzinfo is not None:
+            from zoneinfo import ZoneInfo
+            target = target.astimezone(ZoneInfo("Asia/Kolkata"))
+        target_date = target.date()
+        # DuckDB dayofweek is Sunday=0, matching the ETM aggregates.
+        weekday = (target_date.weekday() + 1) % 7
+        rows = con.execute(
+            """SELECT service_date, sum(passenger_volume)::DOUBLE,
+                      sum(transaction_count)::DOUBLE
+               FROM route_demand
+               WHERE lower(trim(route))=lower(trim(?))
+                 AND transaction_hour=? AND day_of_week=? AND service_date<?
+               GROUP BY service_date ORDER BY service_date""",
+            [canonical, target.hour, weekday, target_date],
+        ).fetchall()
+        volume = [float(row[1]) for row in rows]
+        transactions = [float(row[2]) for row in rows]
+        return {
+            "status": "AVAILABLE" if rows else "UNAVAILABLE",
+            "route_label": canonical,
+            "target_weekday": target.strftime("%A"),
+            "target_hour": target.hour,
+            "measure": "historical_ticket_activity",
+            "data_source": DATA_SOURCE,
+            "data_status": "historical",
+            "history_start_date": rows[0][0] if rows else None,
+            "history_end_date": rows[-1][0] if rows else None,
+            "comparable_days": len(rows),
+            "passenger_ticket_volume_mean": round(sum(volume) / len(volume), 1) if volume else None,
+            "transaction_count_mean": round(sum(transactions) / len(transactions), 1) if transactions else None,
+            "passenger_ticket_volume_range": [int(min(volume)), int(max(volume))] if volume else None,
+            "limitations": [
+                "Historical October ticket activity for matching weekday and transaction hour; not a forecast.",
+                "created_at is ticket transaction time, not verified boarding time.",
+                "Ticket activity does not establish onboard load, physical crowding, or passenger capacity.",
+                "Route matching uses exact GTFS route labels; no direction or individual bus trip is inferred.",
+            ],
+        }
+    finally:
+        con.close()
+
+
 @router.get("/service-profile", response_model=ServiceProfileResponse)
 def service_profile(date_from: date | None = None, date_to: date | None = None) -> dict:
     if date_from and date_to and date_from > date_to:
