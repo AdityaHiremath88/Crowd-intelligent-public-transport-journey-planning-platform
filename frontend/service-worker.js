@@ -21,3 +21,5 @@ self.addEventListener('fetch', event => {
     return cached || (request.mode === 'navigate' ? caches.match('/index.html') : Response.error())
   }))
 })
+
+

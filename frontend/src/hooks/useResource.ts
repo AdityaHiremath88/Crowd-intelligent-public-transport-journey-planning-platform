@@ -20,3 +20,5 @@ export function useResource<T>(load: () => Promise<T>, dependencies: unknown[] =
 
   return { data, error, loading, reload: () => setLoading(true) }
 }
+
+

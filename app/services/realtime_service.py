@@ -50,7 +50,7 @@ class RealtimeStore:
                     bearing REAL, speed_mps REAL, current_stop_id TEXT,
                     current_stop_sequence INTEGER, current_status TEXT,
                     position_timestamp INTEGER NOT NULL, feed_timestamp INTEGER,
-                    received_at INTEGER NOT NULL
+                    received_at INTEGER NOT NULL, route_id_matched INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS realtime_status (
                     singleton INTEGER PRIMARY KEY CHECK(singleton=1),
@@ -60,6 +60,9 @@ class RealtimeStore:
                 );
                 INSERT OR IGNORE INTO realtime_status(singleton) VALUES(1);
             """)
+            columns = {row[1] for row in con.execute("PRAGMA table_info(realtime_vehicles)").fetchall()}
+            if "route_id_matched" not in columns:
+                con.execute("ALTER TABLE realtime_vehicles ADD COLUMN route_id_matched INTEGER NOT NULL DEFAULT 0")
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.path, timeout=5)
@@ -92,12 +95,16 @@ class RealtimeStore:
             con.execute("BEGIN IMMEDIATE")
             con.execute("DELETE FROM realtime_vehicles")
             con.executemany(
-                """INSERT INTO realtime_vehicles VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                """INSERT INTO realtime_vehicles(
+                    vehicle_id,trip_id,route_id,latitude,longitude,bearing,speed_mps,current_stop_id,
+                    current_stop_sequence,current_status,position_timestamp,feed_timestamp,received_at,route_id_matched
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 [(
                     v["vehicle_id"], v["trip_id"], v["route_id"], v["latitude"], v["longitude"],
                     v["bearing"], v["speed_meters_per_second"], v["current_stop_id"],
                     v["current_stop_sequence"], v["current_status"], v["position_timestamp"],
                     v["feed_timestamp"], completed_at,
+                    int(v.get("route_id_matched", False)),
                 ) for v in vehicles],
             )
             con.execute(
@@ -161,6 +168,8 @@ def parse_vehicle_positions(
         raise RealtimeFeedError("FEED_TIMESTAMP_IN_FUTURE")
     if feed_timestamp is not None and now_epoch - feed_timestamp > max_age_seconds:
         raise RealtimeFeedError("FEED_STALE")
+    if not feed.entity:
+        raise RealtimeFeedError("FEED_EMPTY")
 
     best_by_vehicle: dict[str, dict] = {}
     malformed = stale = duplicates = 0
@@ -185,6 +194,7 @@ def parse_vehicle_positions(
                 continue
             trip_id = vehicle.trip.trip_id.strip() if vehicle.HasField("trip") and vehicle.trip.trip_id else None
             route_id = vehicle.trip.route_id.strip() if vehicle.HasField("trip") and vehicle.trip.route_id else None
+            route_id_matched = False
             if trip_id and trips:
                 if trip_id not in trips:
                     raise ValueError("trip is not in static GTFS")
@@ -192,8 +202,11 @@ def parse_vehicle_positions(
                 if route_id and route_id != mapped_route:
                     raise ValueError("trip and route disagree")
                 route_id = mapped_route
+                route_id_matched = True
             if route_id and routes and route_id not in routes:
                 raise ValueError("route is not in static GTFS")
+            if route_id and routes and route_id in routes:
+                route_id_matched = True
             stop_id = vehicle.stop_id if vehicle.HasField("stop_id") and vehicle.stop_id else None
             if stop_id and stops and stop_id not in stops:
                 raise ValueError("stop is not in static GTFS")
@@ -202,6 +215,7 @@ def parse_vehicle_positions(
                 current_status = gtfs_realtime_pb2.VehiclePosition.VehicleStopStatus.Name(vehicle.current_status)
             item = {
                 "vehicle_id": vehicle_id, "trip_id": trip_id, "route_id": route_id,
+                "route_id_matched": route_id_matched,
                 "latitude": lat, "longitude": lon,
                 "bearing": float(vehicle.position.bearing) if vehicle.position.HasField("bearing") else None,
                 "speed_meters_per_second": float(vehicle.position.speed) if vehicle.position.HasField("speed") else None,
@@ -216,6 +230,8 @@ def parse_vehicle_positions(
                 best_by_vehicle[vehicle_id] = item
         except (ValueError, TypeError, OverflowError):
             malformed += 1
+    if not best_by_vehicle:
+        raise RealtimeFeedError("FEED_EMPTY")
     return {
         "vehicles": list(best_by_vehicle.values()), "feed_timestamp": feed_timestamp,
         "malformed_count": malformed, "stale_count": stale, "duplicate_count": duplicates,
@@ -232,6 +248,8 @@ def _build_request() -> urllib.request.Request:
     loopback_http = parsed_url.scheme == "http" and parsed_url.hostname in {"127.0.0.1", "localhost", "::1"}
     if parsed_url.scheme != "https" and not loopback_http:
         raise RealtimeFeedError("HTTPS_REQUIRED")
+    if not GTFS_RT_API_KEY:
+        raise RealtimeFeedError("CREDENTIAL_MISSING")
     # Transport Stack's feed endpoint returns 406 when an Accept header is sent.
     headers = {}
     if GTFS_RT_API_KEY:
@@ -247,6 +265,31 @@ def _build_request() -> urllib.request.Request:
     return urllib.request.Request(url, headers=headers, method="GET")
 
 
+def _static_gtfs_ids() -> tuple[set[str], dict[str, str], set[str]]:
+    """Load validated GTFS identifiers for exact feed matching; raw IDs remain available if absent."""
+    con = None
+    try:
+        from app.database import connect, gtfs_is_usable
+
+        con = connect()
+        if not gtfs_is_usable(con):
+            return set(), {}, set()
+        routes = {str(row[0]) for row in con.execute("SELECT route_id FROM gtfs_routes").fetchall()}
+        trips = {
+            str(trip_id): str(route_id)
+            for trip_id, route_id in con.execute("SELECT trip_id, route_id FROM gtfs_trips").fetchall()
+        }
+        stops = {str(row[0]) for row in con.execute("SELECT stop_id FROM gtfs_stops").fetchall()}
+        return routes, trips, stops
+    except Exception as exc:
+        # Static GTFS is optional; in its absence, show provider IDs without claiming a match.
+        logger.info("GTFS-RT static ID matching unavailable error_type=%s", type(exc).__name__)
+        return set(), {}, set()
+    finally:
+        if con is not None:
+            con.close()
+
+
 def poll_once(*, now_epoch: int | None = None) -> dict:
     attempt = int(time.time()) if now_epoch is None else now_epoch
     store.mark_attempt(attempt)
@@ -255,8 +298,9 @@ def poll_once(*, now_epoch: int | None = None) -> dict:
         opener = urllib.request.build_opener(_NoRedirectHandler)
         with opener.open(request, timeout=GTFS_RT_TIMEOUT_SECONDS) as response:
             payload = response.read(MAX_FEED_BYTES + 1)
+        routes, trips, stops = _static_gtfs_ids()
         parsed = parse_vehicle_positions(
-            payload, now_epoch=attempt
+            payload, routes=routes, trips=trips, stops=stops, now_epoch=attempt
         )
         feed_timestamp = parsed["feed_timestamp"] if parsed["feed_timestamp"] is not None else attempt
         completed = int(time.time()) if now_epoch is None else now_epoch
@@ -302,19 +346,26 @@ def current_snapshot() -> tuple[dict, list[dict]]:
     last_success = status.get("last_success_at")
     age = now - int(last_success) if last_success is not None else None
     max_age = GTFS_RT_MAX_STALENESS_SECONDS
-    configured = bool(GTFS_RT_URL)
-    authorized = configured and status.get("last_success_at") is not None and status.get("last_error_code") != "AUTHORIZATION_FAILED"
+    configured = bool(GTFS_RT_URL and GTFS_RT_API_KEY)
+    authorized = (
+        configured
+        and status.get("last_success_at") is not None
+        and status.get("last_error_code") not in {"AUTHORIZATION_FAILED", "HTTP_401", "HTTP_403"}
+    )
     if not configured:
-        state = "UNAVAILABLE"
+        state = "NOT_CONFIGURED"
     elif status.get("last_error_code"):
         state = "ERROR"
     elif age is None or age > max_age:
         state = "STALE" if age is not None else "UNAVAILABLE"
     else:
         state = "HEALTHY"
-    vehicles = store.vehicles() if state == "HEALTHY" else []
+    # Preserve last-known positions across failed polls and expose their observation age.
+    vehicles = store.vehicles() if status.get("last_success_at") is not None else []
     stale_count = status.get("stale_count", 0)
     if state == "STALE":
         stale_count = max(stale_count, status.get("current_vehicle_count", 0))
     return ({**status, "status": state, "configured": configured, "authorized": authorized,
              "stale_vehicle_count": stale_count}, vehicles)
+
+

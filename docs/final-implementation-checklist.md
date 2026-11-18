@@ -28,3 +28,5 @@
 - [x] Confirm no frontend paths were changed.
 
 External production data remains a documented blocker: no authorized current Delhi GTFS or GTFS-RT feed is configured, so real routing, geofence presence and live vehicles remain unavailable. Docker is not available for runtime verification. Synthetic transit data was used only in isolated tests and benchmarks.
+
+

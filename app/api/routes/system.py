@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 
 from app.database import connect, gtfs_is_usable
-from app.config import GTFS_RT_URL
+from app.config import GTFS_RT_API_KEY, GTFS_RT_URL
 from app.schemas import (
     DatasetCatalogEntry,
     DatasetCatalogResponse,
@@ -46,6 +46,7 @@ def capabilities() -> SystemCapabilitiesResponse:
         usable_gtfs = False
         gtfs_map_available = False
     etm_available = ETM_CORE_TABLES.issubset(tables)
+    realtime = current_snapshot()[0]
     return SystemCapabilitiesResponse(
         generated_at=datetime.now(UTC),
         historical_ticket_analytics=etm_available,
@@ -54,8 +55,8 @@ def capabilities() -> SystemCapabilitiesResponse:
         scheduled_journey_search=usable_gtfs,
         trip_level_load_estimation=False,
         crowd_classification=False,
-        live_vehicle_positions=current_snapshot()[0]["status"] == "HEALTHY",
-        live_vehicle_feed_configured=bool(GTFS_RT_URL),
+        live_vehicle_positions=realtime["status"] == "HEALTHY",
+        live_vehicle_feed_configured=bool(GTFS_RT_URL and GTFS_RT_API_KEY),
         community_reporting=True,
         opt_in_presence=gtfs_map_available,
         historical_ticket_activity_forecast=etm_available,
@@ -64,7 +65,7 @@ def capabilities() -> SystemCapabilitiesResponse:
             "Segment loads are unavailable because ticket rows lack validated trip assignments and verified boarding/alighting events.",
             "Crowd labels are unavailable because ticketed load is not validated physical occupancy and vehicle capacity is not verified.",
             "GTFS schedule routing is enabled only when a feed passed import quality checks; static timetable time is approximate, not live.",
-            "No authorized real-time vehicle feed is configured.",
+            ("Authorized realtime credentials are not configured; vehicle positions are unavailable." if not realtime["configured"] else f"Realtime feed status is {realtime['status']}; vehicle positions are exposed only with their provider observation timestamps."),
             "Community crowd reports are subjective categories and do not establish unique reporters or measured counts.",
             "Opt-in presence signals require a validated GTFS stop with coordinates; only short-lived aggregates are exposed.",
             ("A persistent report HMAC key is available from configuration or a local ignored sidecar file." if community_store.secret_is_persistent else "Report deduplication key is not persistent; configure CROWDWISE_REPORT_HMAC_SECRET for stable deduplication across restarts."),
@@ -155,3 +156,5 @@ def methodology() -> MethodologyResponse:
             "raw transaction count alone is insufficient."
         ),
     )
+
+

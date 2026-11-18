@@ -42,3 +42,5 @@ The weekday-aware candidate lowers RMSE but does not improve passenger-volume MA
 - Days with no rows are not included as zero. If source extract completeness is not verified, missing rows may reflect incomplete capture rather than no transactions.
 - The 31-day source contains little seasonal history; date-level transactions are correlated. Cell-level MAE/RMSE does not justify occupancy or queue conclusions.
 - No prediction interval or probability is reported because one month is insufficient for calibrated uncertainty and the current source fails freshness.
+
+

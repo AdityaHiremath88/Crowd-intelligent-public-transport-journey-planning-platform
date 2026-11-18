@@ -34,3 +34,5 @@ If approved evidence arrives, candidate scoring could combine exact vehicle, rou
 `P(trip=j | ticket, AVL, schedule, matching evidence)`
 
 Training/validation must split by calendar day and preferably hold out vehicles/routes; compare top-1 accuracy, top-k recall and calibration (Brier score/reliability plot). Unmatched/ambiguous records remain unassigned. Do not sum fractional posteriors as exact people unless the expected-load interpretation and uncertainty are explicitly carried forward.
+
+

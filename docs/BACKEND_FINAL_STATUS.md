@@ -73,3 +73,5 @@ python -m pip check
 ```
 
 For authorized RT access only, set `CROWDWISE_GTFS_RT_URL`, `CROWDWISE_GTFS_RT_API_KEY`, and the documented auth mode in `.env`/secret management. Keep community SQLite and its `.hmac-key` sidecar on a protected writable persistent volume. Never store credentials in the frontend or commit them.
+
+

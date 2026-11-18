@@ -59,3 +59,5 @@ ETM processing materializes `route_demand` and `route_stop_catalog`. Unfiltered 
 ## Reproduction
 
 From project root, run `.venv\Scripts\python.exe -m scripts.benchmark_backend --repetitions 21 --report outputs/backend_benchmark.json`. The script calls current APIs against the processed real ETM and creates temporary, explicitly synthetic GTFS imports/search fixtures. Record OS, CPU, Python, DuckDB, database size, filters, cardinality and results. Do not run benchmark writes on the serving database. Add cold-cache, HTTP serialization, concurrency, RSS and realistic authorized-feed measurements before deployment capacity claims.
+
+

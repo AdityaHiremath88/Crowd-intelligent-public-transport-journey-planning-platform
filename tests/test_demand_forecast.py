@@ -81,3 +81,5 @@ def test_chronological_backtest_uses_prior_windows_and_returns_real_metrics(tmp_
     assert report["passenger_volume"]["model"]["n"] == 7
     assert report["passenger_volume"]["model"]["mae"] >= 0
     assert report["transaction_count"]["baseline"]["rmse"] >= 0
+
+

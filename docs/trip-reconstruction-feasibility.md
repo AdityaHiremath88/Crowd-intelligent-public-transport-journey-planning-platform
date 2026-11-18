@@ -41,3 +41,5 @@ Before enabling trip inference, require: (1) an authorized source key/run mappin
 - [OTD GTFS documentation and static-time caveat](https://otd.delhi.gov.in/documentation/)
 - [GTFS Schedule reference](https://gtfs.org/documentation/schedule/reference/)
 - [Transit OD estimation with AVL/APC research](https://arxiv.org/abs/1911.05777) (requires AVL/APC-type observations; not applicable as a direct recipe for this ticket file)
+
+

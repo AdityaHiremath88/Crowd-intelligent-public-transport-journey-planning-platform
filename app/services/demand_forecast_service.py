@@ -85,3 +85,5 @@ def forecast_ticket_activity(
         )
     finally:
         con.close()
+
+

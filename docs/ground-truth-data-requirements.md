@@ -47,3 +47,5 @@ Prefer aggregated stop/trip counts over passenger-level trajectory records. Pseu
 - [FTA NTD APC benchmarking reference](https://www.transit.dot.gov/sites/fta.dot.gov/files/2025-08/2025%20NTD%20Mthly-Wkly-Ref-Manual_20250828.pdf)
 - [Caltrans APC data quality report](https://dot.ca.gov/-/media/dot-media/programs/research-innovation-system-information/documents/research-results/task3902-rrs-09-22-a11y.pdf)
 - [Empirical bus APC validation study](https://opentransportationjournal.com/VOLUME/13/PAGE/250/?doi=10.1126%2Fsciadv.adg2248)
+
+

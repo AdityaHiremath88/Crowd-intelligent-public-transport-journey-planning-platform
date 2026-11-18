@@ -142,6 +142,22 @@ class StopMapResponse(BaseModel):
     next_offset: int | None = None
 
 
+class NearbyStopItem(StopListItem):
+    distance_meters: int
+
+
+class NearbyStopRequest(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class NearbyStopsResponse(BaseModel):
+    items: list[NearbyStopItem]
+    source: str
+    generated_at: datetime
+    privacy_note: str
+
+
 class StopDemandObservation(BaseModel):
     date: date
     route: str | None
@@ -410,7 +426,7 @@ class PresenceAggregateResponse(BaseModel):
 
 
 class RealtimeStatusResponse(BaseModel):
-    status: Literal["UNAVAILABLE", "HEALTHY", "STALE", "ERROR"]
+    status: Literal["NOT_CONFIGURED", "UNAVAILABLE", "HEALTHY", "STALE", "ERROR"]
     configured: bool
     authorized: bool
     last_attempt_at: datetime | None
@@ -427,6 +443,7 @@ class VehiclePositionResponse(BaseModel):
     vehicle_id: str
     trip_id: str | None
     route_id: str | None
+    route_id_match_status: Literal["VERIFIED_STATIC_GTFS", "PROVIDER_ID_ONLY"]
     latitude: float
     longitude: float
     bearing: float | None
@@ -437,12 +454,12 @@ class VehiclePositionResponse(BaseModel):
     position_timestamp: datetime
     feed_timestamp: datetime | None
     freshness_seconds: int
-    status: Literal["LIVE_OBSERVED"] = "LIVE_OBSERVED"
+    status: Literal["LIVE_OBSERVED", "STALE_CACHED"] = "LIVE_OBSERVED"
     data_source: str
 
 
 class VehicleListResponse(BaseModel):
-    status: Literal["HEALTHY", "STALE", "UNAVAILABLE", "ERROR"]
+    status: Literal["NOT_CONFIGURED", "HEALTHY", "STALE", "UNAVAILABLE", "ERROR"]
     generated_at: datetime
     last_success_at: datetime | None
     vehicles: list[VehiclePositionResponse]
@@ -465,4 +482,6 @@ class TicketActivityForecastResponse(BaseModel):
     generated_at: datetime
     evidence_quality: str
     limitations: list[str]
+
+
 

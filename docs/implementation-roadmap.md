@@ -37,3 +37,5 @@ This roadmap is based on `backend-audit.md`. Sequence is evidence-driven; an una
 - HTTP contracts are listed in OpenAPI and docs; no API serves stale/synthetic real-world claims.
 - Benchmark measurements are reproducible and no performance improvement is claimed without measured evidence.
 - Test suite passes; frontend integration contract describes absent data plainly.
+
+

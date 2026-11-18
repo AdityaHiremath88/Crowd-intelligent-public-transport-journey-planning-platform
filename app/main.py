@@ -26,13 +26,13 @@ async def lifespan(_: FastAPI):
     )
     poller = None
     cleanup_task = asyncio.create_task(_community_cleanup_loop(), name="crowdwise-community-expiry")
-    from app.config import GTFS_RT_URL
-    if GTFS_RT_URL:
+    from app.config import GTFS_RT_API_KEY, GTFS_RT_URL
+    if GTFS_RT_URL and GTFS_RT_API_KEY:
         from app.services.realtime_service import polling_loop
         poller = asyncio.create_task(polling_loop(), name="crowdwise-gtfs-rt-poller")
         logger.info("GTFS-RT polling enabled")
     else:
-        logger.info("GTFS-RT polling disabled; no authorized feed URL configured")
+        logger.info("GTFS-RT polling disabled; provider URL or API key is not configured")
     yield
     if poller is not None:
         poller.cancel()
@@ -134,4 +134,6 @@ app.include_router(crowding_router, prefix="/api/v1")
 app.include_router(presence_router, prefix="/api/v1")
 app.include_router(vehicles_router, prefix="/api/v1")
 app.include_router(realtime_router, prefix="/api/v1")
+
+
 

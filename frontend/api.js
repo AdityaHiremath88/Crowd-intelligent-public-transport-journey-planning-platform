@@ -1,4 +1,4 @@
-const API_BASE = (window.YUKTIX_API_BASE || 'http://localhost:8000').replace(/\/$/, '')
+const API_BASE = (window.CROWDWISE_API_BASE || window.YUKTIX_API_BASE || 'http://localhost:8000').replace(/\/$/, '')
 const cache = new Map()
 async function request(path, options = {}) {
   const { timeoutMs = 12000, ...fetchOptions } = options
@@ -9,7 +9,7 @@ async function request(path, options = {}) {
     response = await fetch(`${API_BASE}${path}`, { ...fetchOptions, signal: fetchOptions.signal || controller.signal, headers: { Accept: 'application/json', ...(fetchOptions.body ? { 'Content-Type': 'application/json' } : {}), ...(fetchOptions.headers || {}) } })
   } catch (error) {
     if (error.name === 'AbortError') throw Object.assign(new Error('The request timed out. Please try again.'), { status: 0, code: 'TIMEOUT' })
-    throw Object.assign(new Error('Cannot reach the Yuktix API. Check that the backend is running.'), { status: 0, code: 'NETWORK_ERROR' })
+    throw Object.assign(new Error('Cannot reach the CrowdWise API. Check that the backend is running.'), { status: 0, code: 'NETWORK_ERROR' })
   } finally { clearTimeout(timer) }
   const payload = await response.json().catch(() => null)
   if (payload === null) throw Object.assign(new Error('The API returned an unreadable response.'), { status: response.status, code: 'INVALID_RESPONSE' })
@@ -36,6 +36,9 @@ export const api = {
     cache.set(key, items)
     return items
   },
+  async nearbyStop(latitude, longitude) {
+    return request('/api/v1/stops/nearby', { method: 'POST', body: JSON.stringify({ latitude, longitude }) })
+  },
   async stop(stopId) { return request(`/api/v1/stops/${encodeURIComponent(stopId)}`) },
   async demand(stopId) { return request(`/api/v1/stops/${encodeURIComponent(stopId)}/demand`) },
   async crowdAtStop(stopId) { return request(`/api/v1/crowding/stop/${encodeURIComponent(stopId)}`) },
@@ -46,5 +49,9 @@ export const api = {
   async journeySearch(body) { return request('/api/v1/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },
   async overview() { return request('/api/v1/analytics/overview') },
   async trends() { return request('/api/v1/analytics/trends?granularity=day') },
-  async corridors() { return request('/api/v1/analytics/corridors?limit=8') }
+  async corridors() { return request('/api/v1/analytics/corridors?limit=8') },
+  async liveVehicles() { return request('/api/v1/vehicles/live') },
+  async realtimeStatus() { return request('/api/v1/realtime/status') }
 }
+
+

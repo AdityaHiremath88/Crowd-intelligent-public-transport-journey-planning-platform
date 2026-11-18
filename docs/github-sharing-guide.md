@@ -2,7 +2,7 @@
 
 ## Repository contents
 
-This private repository contains the Yuktix web frontend, FastAPI backend, processing scripts, tests, and project documentation. The current target is `AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform`; its existing `main` history is preserved. Contribute through a topic branch and pull request; do not force-push or replace the default branch history.
+This private repository contains the CrowdWise web frontend, FastAPI backend, processing scripts, tests, and project documentation. The current target is `AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform`; its existing `main` history is preserved. Contribute through a topic branch and pull request; do not force-push or replace the default branch history.
 
 ## Data and secrets
 
@@ -34,3 +34,5 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. The frontend calls the API at `http://localhost:8000` by default. A clone without separately authorized local data can show the app shell, but server-backed analytics and journey search remain unavailable.
+
+

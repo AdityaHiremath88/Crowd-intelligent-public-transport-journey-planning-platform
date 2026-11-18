@@ -169,3 +169,5 @@ def search(request: JourneySearchRequest) -> JourneySearchResponse:
         message=None if options else "No scheduled journey was found for this departure and service date.",
     )
 
+
+

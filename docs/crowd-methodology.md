@@ -24,3 +24,5 @@ At present, stop demand responses carry `descriptive_observation`, which means a
 
 The official Delhi OTD documentation says static stop times are rough estimates based on assumed constant speed. Scheduled journey results must surface that limitation and must not be described as live ETAs.
 
+
+

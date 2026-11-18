@@ -70,3 +70,5 @@ def assess_confidence(evidence: ConfidenceEvidence) -> ConfidenceAssessment:
 
 def confidence_as_dict(assessment: ConfidenceAssessment) -> dict:
     return asdict(assessment)
+
+

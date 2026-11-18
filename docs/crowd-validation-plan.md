@@ -21,3 +21,5 @@ Minimum useful validation source is trip/time/segment-specific passenger counts 
 - Baselines: previous comparable service-day mean, route/time historical median, and no-estimate/abstain baseline.
 
 Split chronologically, not randomly. Keep a final untouched test period and group correlated records by trip/day. Report confidence intervals via trip/day block resampling. No metric can be populated from the current ETM extract alone.
+
+

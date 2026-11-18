@@ -41,3 +41,5 @@ export default function MapPanel({ compact = false }: { compact?: boolean }) {
     </section>
   )
 }
+
+

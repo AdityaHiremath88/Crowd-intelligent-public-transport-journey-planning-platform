@@ -40,3 +40,5 @@ Never turn a missing field, unavailable capability, empty list or 503 into a zer
 ```
 
 This illustrates request shape only. No journey prediction is being claimed by this example.
+
+

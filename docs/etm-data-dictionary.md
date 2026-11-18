@@ -30,3 +30,5 @@ The local file is `datasets/etm/raw/October-Delhi.csv` (2,559,899 records; 290,0
 - `pipeline_runs`: append-only run metadata for ETM and GTFS processing, including source hash, byte size, schema/pipeline version, row counts, outcome and runtime.
 
 Raw CSV remains the immutable raw layer and must be retained separately. The ETL layer is a normalized analytical representation, not an exact raw replica: source strings are not all retained in `etm_records`; rebuild from the private immutable CSV if needed.
+
+

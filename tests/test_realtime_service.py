@@ -34,6 +34,7 @@ def test_parse_valid_gtfs_rt_vehicle_position():
     assert len(parsed["vehicles"]) == 1
     assert parsed["vehicles"][0]["vehicle_id"] == "bus-1"
     assert parsed["vehicles"][0]["route_id"] == "route-1"
+    assert parsed["vehicles"][0]["route_id_matched"] is True
     assert parsed["vehicles"][0]["current_stop_id"] == "stop-1"
 
 
@@ -44,6 +45,15 @@ def test_parser_rejects_invalid_binary_and_stale_feed():
     with pytest.raises(RealtimeFeedError, match="FEED_STALE"):
         parse_vehicle_positions(_feed_bytes(now - 600), routes={"route-1"}, trips={"trip-1": "route-1"},
                                  stops={"stop-1"}, now_epoch=now, max_age_seconds=60)
+
+
+def test_parser_rejects_empty_feed_without_replacing_a_valid_snapshot():
+    now = int(time.time())
+    feed = gtfs_realtime_pb2.FeedMessage()
+    feed.header.gtfs_realtime_version = "2.0"
+    feed.header.timestamp = now
+    with pytest.raises(RealtimeFeedError, match="FEED_EMPTY"):
+        parse_vehicle_positions(feed.SerializeToString(), now_epoch=now)
 
 
 def test_parser_drops_stale_and_malformed_entities_and_deduplicates():
@@ -114,3 +124,49 @@ def test_auth_configuration_never_requires_key_at_import_and_query_mode_fails_cl
     monkeypatch.setattr(realtime_service, "GTFS_RT_AUTH_MODE", "header")
     with pytest.raises(RealtimeFeedError, match="HTTPS_REQUIRED"):
         realtime_service._build_request()
+
+
+def test_official_header_auth_and_unconfigured_status(monkeypatch, tmp_path):
+    from app.services import realtime_service
+    monkeypatch.setattr(realtime_service, "GTFS_RT_URL", "https://delhi.transportstack.in/api/dataset/otd/get-file?filename=VehiclePositions.pb")
+    monkeypatch.setattr(realtime_service, "GTFS_RT_API_KEY", "test-only-key")
+    monkeypatch.setattr(realtime_service, "GTFS_RT_AUTH_MODE", "header")
+    monkeypatch.setattr(realtime_service, "GTFS_RT_AUTH_HEADER", "x-api-key")
+    request = realtime_service._build_request()
+    assert request.get_header("X-api-key") == "test-only-key"
+    assert "test-only-key" not in request.full_url
+
+    monkeypatch.setattr(realtime_service, "store", realtime_service.RealtimeStore(tmp_path / "rt.sqlite3"))
+    monkeypatch.setattr(realtime_service, "GTFS_RT_URL", "https://delhi.transportstack.in/feed")
+    monkeypatch.setattr(realtime_service, "GTFS_RT_API_KEY", "")
+    status, vehicles = realtime_service.current_snapshot()
+    assert status["status"] == "NOT_CONFIGURED"
+    assert status["configured"] is False
+    assert status["authorized"] is False
+    assert vehicles == []
+
+
+def test_provider_timeout_keeps_last_valid_positions_visible_as_error_cache(monkeypatch, tmp_path):
+    from app.services import realtime_service
+    now = int(time.time())
+    store = realtime_service.RealtimeStore(tmp_path / "rt.sqlite3")
+    parsed = parse_vehicle_positions(_feed_bytes(now), now_epoch=now)
+    store.replace_snapshot(parsed["vehicles"], attempted_at=now, completed_at=now,
+                            feed_timestamp=now, stale_count=0, malformed_count=0, duplicate_count=0)
+    monkeypatch.setattr(realtime_service, "store", store)
+    monkeypatch.setattr(realtime_service, "GTFS_RT_URL", "https://delhi.transportstack.in/feed")
+    monkeypatch.setattr(realtime_service, "GTFS_RT_API_KEY", "test-only-key")
+
+    class TimeoutOpener:
+        def open(self, request, timeout):
+            raise TimeoutError("network detail is intentionally not logged")
+
+    monkeypatch.setattr(realtime_service.urllib.request, "build_opener", lambda *_: TimeoutOpener())
+    result = realtime_service.poll_once(now_epoch=now)
+    assert result == {"status": "error", "error_code": "TIMEOUT"}
+    status, vehicles = realtime_service.current_snapshot()
+    assert status["status"] == "ERROR"
+    assert len(vehicles) == 1
+    assert vehicles[0]["vehicle_id"] == "bus-1"
+
+

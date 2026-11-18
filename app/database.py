@@ -60,3 +60,5 @@ def gtfs_is_usable(con: duckdb.DuckDBPyConnection | None = None) -> bool:
         if owns_connection and con is not None:
             con.close()
 
+
+

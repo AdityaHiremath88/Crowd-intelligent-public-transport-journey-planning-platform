@@ -25,6 +25,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/realtime/status
 | GET | `/api/v1/analytics/corridors?limit=20` | Route-label ticket activity. |
 | GET | `/api/v1/analytics/service-profile` | `is_ac`/ticket type source summaries. |
 | GET | `/api/v1/stops?q=...&source=auto|etm|gtfs` | Stop catalog search. |
+| POST | `/api/v1/stops/nearby` | One-time nearest validated GTFS stop lookup; coordinates are not stored. |
 | GET | `/api/v1/stops/{stop_id}` | Stop detail. |
 | GET | `/api/v1/stops/{stop_id}/demand` | Historical ticket-start activity. |
 | GET | `/api/v1/stops/map?south=...&west=...&north=...&east=...` | GTFS stop map bounds; requires feed. |
@@ -38,7 +39,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/realtime/status
 | POST | `/api/v1/presence/signals` | Consent-based one-shot geofence signal; requires GTFS coordinates. |
 | GET | `/api/v1/presence/stops/{stop_id}` | Active participating signal aggregate. |
 | GET | `/api/v1/realtime/status` | RT feed/poll health. |
-| GET | `/api/v1/vehicles/live` | Current fresh RT positions. |
+| GET | `/api/v1/vehicles/live` | Current or last-known RT positions with per-position freshness. |
 | GET | `/api/v1/vehicles/{vehicle_id}` | Current vehicle detail. |
 | GET | `/api/v1/vehicles/route/{route_id}` | Current route-matched vehicles. |
 | GET | `/api/v1/vehicles/{vehicle_id}/eta` | ETA contract; currently unavailable without TripUpdates/model. |
@@ -78,7 +79,7 @@ $body = @{
 Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/reports/crowd' -Method Post -ContentType 'application/json' -Headers $headers -Body $body
 ```
 
-Realtime current state (local configuration currently returns `UNAVAILABLE`):
+Realtime current state (local configuration currently returns `NOT_CONFIGURED`):
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/realtime/status'
@@ -88,3 +89,5 @@ Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/vehicles/live'
 ## Status/error handling
 
 New source states: `LIVE_OBSERVED`, `COMMUNITY_REPORTED`, `PREDICTED`, `HISTORICAL_ONLY`, `UNAVAILABLE`, `STALE`, `ERROR`. Existing historical APIs retain their established lower-case `historical` data-status fields. Expected errors: 404 unknown identifier; 409 duplicate/review-missing mapping; 422 invalid request; 429 rate-limited submission; 503 missing data/feed/ETA. Some list endpoints return HTTP 200 with explicit unavailable status and an empty list. Never turn unavailable into zero crowd or comfortable.
+
+

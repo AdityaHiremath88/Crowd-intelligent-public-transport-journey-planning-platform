@@ -1,6 +1,6 @@
-# Yuktix · Delhi Transit App
+# CrowdWise · Delhi Transit App
 
-Yuktix is a mobile-first Delhi transit application backed by the CrowdWise FastAPI services. The repository includes a responsive installable web app, historical ETM analytics, stop insights, voluntary crowd reporting, and journey planning from a locally saved Delhi GTFS static schedule.
+CrowdWise helps Delhi riders plan bus journeys, inspect historical stop activity, share voluntary crowd observations, and view official vehicle GPS positions when authorized live data is available. The responsive installable web app uses the existing FastAPI backend and plain HTML, CSS, and JavaScript frontend.
 
 ## Run the mobile frontend
 
@@ -13,15 +13,15 @@ npm run dev
 
 Open `http://localhost:5173` on desktop or a phone on the same network (for a phone, bind the frontend and API to a reachable network interface and allow the app origin in backend CORS). The app can be installed from a supported mobile browser. Set its API origin centrally in `frontend/config.example.js`; that file contains no secrets. Frontend setup, API calls, tests, and limitations are in [frontend README](frontend/README.md).
 
-The interface deliberately hides live vehicle maps. The currently configured vehicle feed, if present, does not provide verified crowd levels or passenger occupancy.
+The Live map reads only the backend's `/api/v1/vehicles/live` endpoint. It shows provider coordinates, observation time, and feed freshness; route IDs stay labeled as provider IDs until validated against static GTFS. A single GPS observation is not presented as movement, an ETA, or passenger occupancy.
 
 ## Evidence status
 
-The local October 2026 ETM CSV contains 2,559,899 ticket rows. It supports historical ticket-start and route summaries, with passenger volume and transaction count kept separate. It does **not** establish waiting queues, confirmed boarding times, actual alightings, individual trips, onboard occupancy or live crowding. A locally saved Delhi static GTFS feed is now loaded for stop lookup and scheduled journey search; its timetable is approximate, not live, and its coordinates have not been independently checked in the field. See the [static GTFS integration record](docs/static-gtfs-integration.md). The backend also supports voluntary short-lived crowd reports and optional one-shot opt-in presence; neither is a measured headcount.
+The October 2026 ETM dataset has 2,559,899 ticket rows when supplied locally. It supports historical ticket-start and route summaries, with passenger volume and transaction count kept separate. It does **not** establish waiting queues, confirmed boarding times, actual alightings, individual trips, onboard occupancy or live crowding. Static GTFS must be placed in the configured local data path and pass validation before stop catalog and scheduled journey features become available. Its published timetable can be approximate and stop coordinates are not field verified. This GitHub branch does not contain the ETM or GTFS data files. See the [static GTFS integration record](docs/static-gtfs-integration.md). The backend also supports voluntary short-lived crowd reports and optional one-shot opt-in presence; neither is a measured headcount.
 
 See [known limitations](docs/known-limitations.md) and [external data catalog](docs/external-data-catalog.md) for source/access status and the evidence boundary.
 
-The local GTFS archive was already present in the workspace downloads and is used as a prototype schedule snapshot. Its provenance/permission status and freshness have not been independently confirmed. OTD describes stop times as rough estimates; this app labels results as approximate and does not expose live maps or live ETAs. See the [Delhi data acquisition report](docs/delhi-data-acquisition-report.md), [crowd estimation feasibility](docs/crowd-estimation-feasibility.md) and [ground-truth requirements](docs/ground-truth-data-requirements.md).
+The API's GTFS importer supports authorized static GTFS ZIP files and retains a validation report. No static archive is included in this branch, so this checkout cannot provide verified routes, stop autocomplete results, schedules, or nearest-stop lookup until an authorized feed is supplied and loaded. See the [Delhi data acquisition report](docs/delhi-data-acquisition-report.md), [crowd estimation feasibility](docs/crowd-estimation-feasibility.md) and [ground-truth requirements](docs/ground-truth-data-requirements.md).
 
 ## Environment and dependencies
 
@@ -34,7 +34,7 @@ python -m pip install -r requirements.txt
 python -m pip install -r requirements-dev.txt
 ```
 
-Configuration is read from environment variables or `.env` (copy `.env.example`, never commit secrets): `CROWDWISE_DATABASE_PATH`, `CROWDWISE_ETM_CSV`, `CROWDWISE_GTFS_ZIP`, `CROWDWISE_CORS_ORIGINS`, `CROWDWISE_COMMUNITY_DB_PATH`, and optional `CROWDWISE_GTFS_RT_*` settings. The application starts normally when realtime credentials/URL are absent.
+Configuration is read from environment variables or `.env` (copy `.env.example`, never commit secrets): `CROWDWISE_DATABASE_PATH`, `CROWDWISE_ETM_CSV`, `CROWDWISE_GTFS_ZIP`, `CROWDWISE_CORS_ORIGINS`, `CROWDWISE_COMMUNITY_DB_PATH`, and optional `DELHI_GTFS_RT_URL`, `DELHI_GTFS_RT_API_KEY`, and `CROWDWISE_GTFS_RT_*` settings. The application starts normally when the live feed key is absent and reports `NOT_CONFIGURED`.
 
 ## Data layout and processing
 
@@ -86,7 +86,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 - ETM readiness: `GET /ready`
 - Capabilities: `GET /api/v1/system/capabilities`
 
-The API has 28 documented paths. See the [API reference](docs/api-reference.md), [complete endpoint catalog](docs/api-endpoint-catalog.md), and [frontend handoff](docs/FRONTEND_HANDOFF.md). Do not treat absent crowd data as zero or comfortable. Crowd reports are subjective and rate-limited; presence signals count opted-in pseudonymous tokens, not people; current ETM forecasting is withheld as stale. Journey routes use the loaded static GTFS snapshot; live vehicles still require authorized realtime access.
+See the [API reference](docs/api-reference.md), [complete endpoint catalog](docs/api-endpoint-catalog.md), and [frontend handoff](docs/FRONTEND_HANDOFF.md). Live feed health is available at `GET /api/v1/realtime/status`; vehicle positions are available at `GET /api/v1/vehicles/live`. The backend polls every 60 seconds by default with a configurable lower bound of 30 seconds and exponential backoff after failures. The provider's feed cadence is not assumed to match the polling interval. Do not treat absent crowd data as zero or comfortable. Crowd reports are subjective and rate-limited; presence signals count opted-in pseudonymous tokens, not people; current ETM forecasting is withheld as stale. Journey routes use a validated loaded static GTFS snapshot.
 
 For the full endpoint-by-endpoint path, parameters, schema, examples, errors and availability, see [API endpoint catalog](docs/api-endpoint-catalog.md).
 
@@ -122,3 +122,5 @@ Synthetic fixtures validate algorithms and error behavior; they are not mixed in
 - [Ticket activity forecast methodology/backtest](docs/demand-forecast-methodology.md)
 
 The Dockerfile is prepared but image build/runtime was not verified because Docker is not installed in the development environment. Mount the processed database as a read-only volume for serving and run ETL separately; details are in the deployment guide.
+
+

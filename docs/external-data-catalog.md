@@ -32,3 +32,5 @@
 For every future feed, save the untouched ZIP privately, capture publisher, access route, authorization/terms, source URL, retrieval timestamp, SHA-256, feed `feed_info`/calendar service range and validation notices. Run the local importer and (where practical) MobilityData validator. Only activate the feed for scheduled queries if required integrity checks pass and relevant service dates cover the user's query date. Do not rename an expired feed to make it appear fresh.
 
 Detailed dated investigation, field-by-field availability, current DTC PDF provenance and the decision not to transcribe it into route data are documented in [Delhi data acquisition report](delhi-data-acquisition-report.md).
+
+

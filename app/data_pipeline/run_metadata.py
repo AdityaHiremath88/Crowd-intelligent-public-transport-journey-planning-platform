@@ -31,3 +31,5 @@ def ensure_pipeline_run_table(con) -> None:
 
 def new_run_id() -> str:
     return uuid.uuid4().hex
+
+

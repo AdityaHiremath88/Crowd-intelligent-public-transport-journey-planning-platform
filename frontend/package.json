@@ -1,5 +1,5 @@
 {
-  "name": "yuktix-prototype",
+  "name": "crowdwise-web-app",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -18,3 +18,5 @@
     "playwright-core": "^1.65.1"
   }
 }
+
+

@@ -25,12 +25,21 @@ DATABASE_PATH = project_path("CROWDWISE_DATABASE_PATH", "datasets/processed/crow
 ETM_CSV_PATH = project_path("CROWDWISE_ETM_CSV", "datasets/etm/raw/October-Delhi.csv")
 GTFS_ZIP_PATH = project_path("CROWDWISE_GTFS_ZIP", "datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip")
 COMMUNITY_DB_PATH = project_path("CROWDWISE_COMMUNITY_DB_PATH", "datasets/community/crowdwise_signals.sqlite3")
-GTFS_RT_URL = os.getenv("CROWDWISE_GTFS_RT_URL", "https://dts-backend.transportstack.in/api/dataset/otd/get-file?agency=delhi-buses&category=realtime_gtfs&filename=VehiclePositions.pb").strip()
-GTFS_RT_API_KEY = os.getenv("DELHI_BUS_API_KEY", os.getenv("CROWDWISE_GTFS_RT_API_KEY", ""))
+GTFS_RT_URL = os.getenv(
+    "DELHI_GTFS_RT_URL",
+    os.getenv(
+        "CROWDWISE_GTFS_RT_URL",
+        "https://delhi.transportstack.in/api/dataset/otd/get-file?agency=delhi-buses&category=realtime_gtfs&filename=VehiclePositions.pb",
+    ),
+).strip()
+GTFS_RT_API_KEY = os.getenv(
+    "DELHI_GTFS_RT_API_KEY",
+    os.getenv("DELHI_BUS_API_KEY", os.getenv("CROWDWISE_GTFS_RT_API_KEY", "")),
+).strip()
 GTFS_RT_AUTH_MODE = os.getenv("CROWDWISE_GTFS_RT_AUTH_MODE", "header").strip().lower()
 GTFS_RT_AUTH_HEADER = os.getenv("CROWDWISE_GTFS_RT_AUTH_HEADER", "x-api-key").strip()
 GTFS_RT_KEY_PARAMETER = os.getenv("CROWDWISE_GTFS_RT_KEY_PARAMETER", "key").strip()
-GTFS_RT_POLL_SECONDS = _int_setting("CROWDWISE_GTFS_RT_POLL_SECONDS", 30, 15)
+GTFS_RT_POLL_SECONDS = _int_setting("CROWDWISE_GTFS_RT_POLL_SECONDS", 60, 30)
 GTFS_RT_TIMEOUT_SECONDS = _int_setting("CROWDWISE_GTFS_RT_TIMEOUT_SECONDS", 8, 1)
 GTFS_RT_MAX_STALENESS_SECONDS = _int_setting("CROWDWISE_GTFS_RT_MAX_STALENESS_SECONDS", 180, 30)
 REPORT_HMAC_SECRET = os.getenv("CROWDWISE_REPORT_HMAC_SECRET", "")
@@ -46,4 +55,6 @@ CORS_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+
+
 

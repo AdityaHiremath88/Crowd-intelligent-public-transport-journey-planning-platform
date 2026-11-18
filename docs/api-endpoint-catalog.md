@@ -1,6 +1,6 @@
 # API endpoint catalog
 
-**Contract source:** FastAPI `app.main:app`, Pydantic schemas in `app/schemas.py`; current contract has 28 business paths. `/docs` and `/openapi.json` are FastAPI-generated documentation endpoints and are not counted among these paths. Examples below are schema examples, not live results unless explicitly described. ETM outputs are historical. No endpoint currently returns measured physical occupancy.
+**Contract source:** FastAPI `app.main:app`, Pydantic schemas in `app/schemas.py`; current contract has 30 business paths. `/docs` and `/openapi.json` are FastAPI-generated documentation endpoints and are not counted among these paths. Examples below are schema examples, not live results unless explicitly described. ETM outputs are historical. No endpoint currently returns measured physical occupancy.
 
 ## Shared behavior
 
@@ -33,7 +33,7 @@ Purpose: aggregate transaction-time hours for all, weekdays, weekends. Query `da
 
 ### 6. `GET /api/v1/analytics/corridors`
 
-Purpose: top source route-label activity, optionally date-filtered. Query `limit` 1–100 (default20), optional `date_from`, `date_to`. Example `/api/v1/analytics/corridors?limit=10`. Response `CorridorResponse`: routes `{route, passenger_volume, transaction_count, stop_labels}`, source/status/measure/time. Example shape: `{"routes":[{"route":"<source route label>","passenger_volume":...,"transaction_count":...,"stop_labels":...}],...}`. Errors: 422 invalid bounds/limit. Source: `route_demand` and route-start-label catalog. Historical route-label summary; route label/direction not authoritative.
+Purpose: top source route-label activity, optionally date-filtered. Query `limit` 1â€“100 (default20), optional `date_from`, `date_to`. Example `/api/v1/analytics/corridors?limit=10`. Response `CorridorResponse`: routes `{route, passenger_volume, transaction_count, stop_labels}`, source/status/measure/time. Example shape: `{"routes":[{"route":"<source route label>","passenger_volume":...,"transaction_count":...,"stop_labels":...}],...}`. Errors: 422 invalid bounds/limit. Source: `route_demand` and route-start-label catalog. Historical route-label summary; route label/direction not authoritative.
 
 ### 7. `GET /api/v1/analytics/service-profile`
 
@@ -45,7 +45,7 @@ Purpose: search a loaded validated GTFS static timetable. JSON request `JourneyS
 
 ### 9. `GET /api/v1/routes`
 
-Purpose: paginated route-label catalog ranked by ticket passenger volume, optional substring `q`, `limit` 1–500 (default50), `offset` ≥0. Request `/api/v1/routes?q=123&limit=20&offset=0`. Response `RouteListResponse`: source, historical status, measurement, `items[{route_label,passenger_volume,transaction_count,start_label_count,first_observed_date,last_observed_date}]`, limit/offset/next_offset. Example shape: `{"items":[{"route_label":"<ETM label>","passenger_volume":...,"transaction_count":...,"start_label_count":...}],"limit":20,"offset":0,"next_offset":20,...}`. Errors 422 invalid bounds/length; 503 missing ETM aggregates. Source: October ETM. Historical label profile, not canonical GTFS service list.
+Purpose: paginated route-label catalog ranked by ticket passenger volume, optional substring `q`, `limit` 1â€“500 (default50), `offset` â‰¥0. Request `/api/v1/routes?q=123&limit=20&offset=0`. Response `RouteListResponse`: source, historical status, measurement, `items[{route_label,passenger_volume,transaction_count,start_label_count,first_observed_date,last_observed_date}]`, limit/offset/next_offset. Example shape: `{"items":[{"route_label":"<ETM label>","passenger_volume":...,"transaction_count":...,"start_label_count":...}],"limit":20,"offset":0,"next_offset":20,...}`. Errors 422 invalid bounds/length; 503 missing ETM aggregates. Source: October ETM. Historical label profile, not canonical GTFS service list.
 
 ### 10. `GET /api/v1/routes/profile`
 
@@ -53,15 +53,15 @@ Purpose: hourly and weekday profile for one exact ETM route label. Required quer
 
 ### 11. `GET /api/v1/stops`
 
-Purpose: search/list stop records. Query `q` optional (min length1), `limit` 1–5000 (default50), `offset` ≥0, `source=auto|gtfs|etm` (default auto). Example `/api/v1/stops?q=Kashmere&source=etm&limit=20`. Response `StopListResponse`: items `{id,stop_name,coordinates,demand_available}`, source, total_returned, offset, next_offset. Example shape: `{"items":[{"id":"etm_<stable hash>","stop_name":"<source label>","coordinates":null,"demand_available":true}],"source":"ETM ticket start stop labels; not yet matched to GTFS stop IDs",...}`. Errors: 422 invalid query/limit; 503 no processed data or requested GTFS source unavailable. Source: ETM catalog by default, GTFS only if usable. Historical label or reference catalog; no crosswalk implied.
+Purpose: search/list stop records. Query `q` optional (min length1), `limit` 1â€“5000 (default50), `offset` â‰¥0, `source=auto|gtfs|etm` (default auto). Example `/api/v1/stops?q=Kashmere&source=etm&limit=20`. Response `StopListResponse`: items `{id,stop_name,coordinates,demand_available}`, source, total_returned, offset, next_offset. Example shape: `{"items":[{"id":"etm_<stable hash>","stop_name":"<source label>","coordinates":null,"demand_available":true}],"source":"ETM ticket start stop labels; not yet matched to GTFS stop IDs",...}`. Errors: 422 invalid query/limit; 503 no processed data or requested GTFS source unavailable. Source: ETM catalog by default, GTFS only if usable. Historical label or reference catalog; no crosswalk implied.
 
 ### 12. `GET /api/v1/stops/map`
 
-Purpose: GTFS stops in geographic bounding box. Required `south,west,north,east`; limit 1–5000 default2000. Example `/api/v1/stops/map?south=28.5&west=77.0&north=28.9&east=77.4&limit=500`. Response `StopMapResponse`: GTFS stop items with coordinates, source, count, next offset. Example shape: `{"items":[{"id":"<GTFS stop ID>","stop_name":"<GTFS name>","coordinates":{"latitude":28.6,"longitude":77.2},"demand_available":false}],...}`. Errors: 422 invalid coordinate/order/limit; 503 no usable validated GTFS. Source: GTFS coordinates. No ETM linkage implied.
+Purpose: GTFS stops in geographic bounding box. Required `south,west,north,east`; limit 1â€“5000 default2000. Example `/api/v1/stops/map?south=28.5&west=77.0&north=28.9&east=77.4&limit=500`. Response `StopMapResponse`: GTFS stop items with coordinates, source, count, next offset. Example shape: `{"items":[{"id":"<GTFS stop ID>","stop_name":"<GTFS name>","coordinates":{"latitude":28.6,"longitude":77.2},"demand_available":false}],...}`. Errors: 422 invalid coordinate/order/limit; 503 no usable validated GTFS. Source: GTFS coordinates. No ETM linkage implied.
 
 ### 13. `GET /api/v1/stops/{stop_id}/demand`
 
-Purpose: historical ETM ticket-start activity for one ETM catalog ID. Query filters `route`, `day_of_week` 0–6, `transaction_hour` 0–23, `date_from`, `date_to`; `limit` 1–5000 default5000; `offset` ≥0. Example `/api/v1/stops/etm_<hash>/demand?day_of_week=1&transaction_hour=8&limit=100`. Response `StopDemandResponse`: stop ID/name, passenger volume, transaction count, `prediction_type=historical_ticket_start_volume`, status/source/time basis, days/observation coverage, truncation/pagination, confidence=`descriptive_observation`, note and observations `{date,route,day_of_week,transaction_hour,passenger_volume,transaction_count}`. Example shape: `{"prediction_type":"historical_ticket_start_volume","status":"historical","confidence":"descriptive_observation","observations":[],...}`. Errors: 422 filter/date bounds; 404 unknown ID; 409 GTFS stop exists but no reviewed ETM map; 503 data unavailable. Source: October ETM. Not queue size, actual boarding time or onboard load.
+Purpose: historical ETM ticket-start activity for one ETM catalog ID. Query filters `route`, `day_of_week` 0â€“6, `transaction_hour` 0â€“23, `date_from`, `date_to`; `limit` 1â€“5000 default5000; `offset` â‰¥0. Example `/api/v1/stops/etm_<hash>/demand?day_of_week=1&transaction_hour=8&limit=100`. Response `StopDemandResponse`: stop ID/name, passenger volume, transaction count, `prediction_type=historical_ticket_start_volume`, status/source/time basis, days/observation coverage, truncation/pagination, confidence=`descriptive_observation`, note and observations `{date,route,day_of_week,transaction_hour,passenger_volume,transaction_count}`. Example shape: `{"prediction_type":"historical_ticket_start_volume","status":"historical","confidence":"descriptive_observation","observations":[],...}`. Errors: 422 filter/date bounds; 404 unknown ID; 409 GTFS stop exists but no reviewed ETM map; 503 data unavailable. Source: October ETM. Not queue size, actual boarding time or onboard load.
 
 ### 14. `GET /api/v1/stops/{stop_id}`
 
@@ -92,7 +92,7 @@ Purpose: machine-readable methodology summaries for demand, segment loads, crowd
 
 ### 18. `POST /api/v1/reports/crowd`
 
-Purpose: accept a recent subjective crowd category at a referenced stop. Required JSON: `stop_id`, `category=low|moderate|high|very_high`, timezone-aware `observed_at`; optional `route_id`, `feedback_code=long_wait|bus_arriving|service_disruption|other`. Required header `X-CrowdWise-Client` is an app-generated opaque token 16–128 chars; do not send a person's name/account. Example:
+Purpose: accept a recent subjective crowd category at a referenced stop. Required JSON: `stop_id`, `category=low|moderate|high|very_high`, timezone-aware `observed_at`; optional `route_id`, `feedback_code=long_wait|bus_arriving|service_disruption|other`. Required header `X-CrowdWise-Client` is an app-generated opaque token 16â€“128 chars; do not send a person's name/account. Example:
 
 ```http
 POST /api/v1/reports/crowd
@@ -116,7 +116,7 @@ Purpose: produce a conservative community-reported category aggregate. Example `
 
 ### 21. `GET /api/v1/crowding/prediction`
 
-Purpose: historical baseline for represented ticket activity at one ETM start-stop label. Query: required `stop_id`, `target_date` as ISO date, `hour` 0–23. Example `/api/v1/crowding/prediction?stop_id=etm_c4f6c32160141e49&target_date=2026-11-20&hour=8`. Response `TicketActivityForecastResponse`: target, status `PREDICTED|STALE|UNAVAILABLE`, `prediction_type=ticket_transaction_activity_proxy`, predicted represented passenger ticket volume and transaction count (nullable), comparable day count, historical sample min/max, historical max date, method, source, evidence quality and limitations. Forecast is withheld if source is older than 14 days or fewer than 3 prior comparable weekday/hour observations exist; horizon is 14 days. Current October 2026 source is stale as of November 2026, so current calls return `STALE` with null predicted values. Errors: 404 unknown ETM stop, 422 past/out-of-horizon dates/hour, 503 database or quality metadata unavailable. This predicts ticket-record activity only, never waiting people or occupancy.
+Purpose: historical baseline for represented ticket activity at one ETM start-stop label. Query: required `stop_id`, `target_date` as ISO date, `hour` 0â€“23. Example `/api/v1/crowding/prediction?stop_id=etm_c4f6c32160141e49&target_date=2026-11-20&hour=8`. Response `TicketActivityForecastResponse`: target, status `PREDICTED|STALE|UNAVAILABLE`, `prediction_type=ticket_transaction_activity_proxy`, predicted represented passenger ticket volume and transaction count (nullable), comparable day count, historical sample min/max, historical max date, method, source, evidence quality and limitations. Forecast is withheld if source is older than 14 days or fewer than 3 prior comparable weekday/hour observations exist; horizon is 14 days. Current October 2026 source is stale as of November 2026, so current calls return `STALE` with null predicted values. Errors: 404 unknown ETM stop, 422 past/out-of-horizon dates/hour, 503 database or quality metadata unavailable. This predicts ticket-record activity only, never waiting people or occupancy.
 
 ### 22. `POST /api/v1/presence/signals`
 
@@ -140,7 +140,7 @@ Purpose: return the active short-lived signal aggregate. Example `/api/v1/presen
 
 ### 24. `GET /api/v1/realtime/status`
 
-Purpose: report GTFS-RT adapter configuration, last poll/ingestion, feed timestamp, current/stale record counts, and non-secret error code. Response `RealtimeStatusResponse`: status `HEALTHY|STALE|UNAVAILABLE|ERROR`, `configured`, `authorized`, timestamps and counts. With no configured endpoint, current response is `UNAVAILABLE`, `configured=false`, `authorized=false`, count 0. The API never includes the URL key or authorization header. No network access occurs without `CROWDWISE_GTFS_RT_URL`.
+Purpose: report GTFS-RT adapter configuration, last poll/ingestion, feed timestamp, current/stale record counts, and non-secret error code. Response `RealtimeStatusResponse`: status `HEALTHY|STALE|NOT_CONFIGURED|ERROR`, `configured`, `authorized`, timestamps and counts. With no configured endpoint/key pair, current response is `NOT_CONFIGURED`, `configured=false`, `authorized=false`, count 0. The API never includes the URL or authorization secret. Polling uses `DELHI_GTFS_RT_URL` and `DELHI_GTFS_RT_API_KEY` only when both are configured; default polling interval is 60 seconds.
 
 ### 25. `GET /api/v1/vehicles/live`
 
@@ -161,3 +161,13 @@ Purpose: explicit ETA boundary. GTFS VehiclePositions alone does not provide a v
 ## Shared privacy, limits and retention
 
 The API uses HMACs of the opaque client token and network source for duplicate/rate controls; raw client tokens and IPs are not stored. Defaults: 10 submissions per client per rolling hour, 100 per network per rolling hour, report lifetime at most 1,200 seconds after observation, and presence lifetime 600 seconds. Expiry runs on reads/writes and in a 60-second background cleanup loop. A persistent random HMAC key is generated in an ignored sidecar next to the community SQLite file unless `CROWDWISE_REPORT_HMAC_SECRET` is configured. Keep that sidecar and SQLite on a protected persistent volume; do not expose them publicly. Rate limits deter basic abuse but do not prove personhood or replace authentication.
+
+
+### 29. POST /api/v1/stops/nearby 
+
+Purpose: find the nearest validated static GTFS stop to a user-submitted one-time latitude/longitude. Request JSON contains latitude and longitude; coordinates are not placed in the URL or stored. Response includes the matched stop and distance. Returns 503 if no validated GTFS stop data is loaded and 404 if no stop lies within 25 km. Browser location is requested only after explicit user action.
+
+### 30. GET /api/v1/vehicles/buses/live 
+
+Compatibility alias for GET /api/v1/vehicles/live; response semantics and freshness fields are identical.
+

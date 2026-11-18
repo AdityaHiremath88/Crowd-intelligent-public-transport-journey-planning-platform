@@ -102,3 +102,5 @@ def test_gtfs_quality_gate_rejects_duplicate_trip_stop_sequence(tmp_path):
     assert report["issues"]["duplicate_trip_stop_sequence"] > 0
     assert report["usable_for_scheduled_routing"] is False
 
+
+

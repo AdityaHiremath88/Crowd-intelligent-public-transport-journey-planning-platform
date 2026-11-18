@@ -45,3 +45,5 @@ Consequently useful current analyses include transaction-time label-pair ranking
 7. **No independent ground truth:** no APC/manual counts are present; occupancy error metrics cannot be computed.
 
 Current data is suitable for observed ticket-volume summaries with these caveats. It is unsuitable for measured queue, vehicle occupancy, legal capacity, spare seats or live crowd conclusions.
+
+

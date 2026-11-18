@@ -53,3 +53,5 @@
 **Decision:** Source file remains immutable; cleaned/derived values are separate; no automatic row deduplication without a defensible key.  
 **Reason:** Identical rows can be legitimate repeated tickets and no transaction ID exists.  
 **Consequences:** Every run records source digest, row counts and transformation version; anomalies are flagged, not erased.
+
+

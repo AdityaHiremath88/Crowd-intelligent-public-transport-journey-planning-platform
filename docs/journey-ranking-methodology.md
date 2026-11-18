@@ -20,3 +20,5 @@ Lower is better. Current initial `(time, crowd, transfers)` weight assumptions a
 - Walking and transfer-specific penalties are not modeled separately; `waiting_seconds` is returned but not a separate score term.
 - When crowd is later present, crowd exposure must aggregate ridden segment load times duration/distance or another user-interpretable measure, propagate uncertainty/coverage, and avoid a zero default for unknown segments.
 - Future multivariate ranking should retain a Pareto set for time, transfers, walk and confidence before preference scoring so one dimension does not conceal dominated options.
+
+

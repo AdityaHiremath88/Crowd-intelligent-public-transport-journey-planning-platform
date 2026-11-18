@@ -86,3 +86,5 @@ def estimate_segment_load(
     if not any(segment.contributing_transactions for segment in loads):
         return SegmentLoadResult("unavailable", expected_trip_id, tuple(loads), "No validated ticket journeys cover this trip's segments.")
     return SegmentLoadResult("ticketed_load_proxy", expected_trip_id, tuple(loads), None)
+
+

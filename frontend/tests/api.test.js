@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-globalThis.window = { YUKTIX_API_BASE: 'https://api.example.test/' }
+globalThis.window = { CROWDWISE_API_BASE: 'https://api.example.test/' }
 const { api } = await import('../api.js')
 
 function jsonResponse(body, status = 200) {
@@ -77,3 +77,38 @@ test('malformed API JSON is not treated as an empty success response', async () 
     await assert.rejects(api.health(), error => error.status === 200 && error.code === 'INVALID_RESPONSE')
   } finally { globalThis.fetch = previousFetch }
 })
+
+test('live positions and feed health use backend-only CrowdWise endpoints', async () => {
+  const previousFetch = globalThis.fetch
+  const urls = []
+  globalThis.fetch = async url => {
+    urls.push(String(url))
+    return jsonResponse({ status: 'NOT_CONFIGURED', vehicles: [] })
+  }
+  try {
+    assert.equal((await api.liveVehicles()).status, 'NOT_CONFIGURED')
+    assert.equal((await api.realtimeStatus()).status, 'NOT_CONFIGURED')
+    assert.deepEqual(urls, [
+      'https://api.example.test/api/v1/vehicles/live',
+      'https://api.example.test/api/v1/realtime/status',
+    ])
+  } finally { globalThis.fetch = previousFetch }
+})
+
+test('nearby stop lookup posts one-time coordinates to the backend without putting them in the URL', async () => {
+  const previousFetch = globalThis.fetch
+  let call
+  globalThis.fetch = async (url, options) => {
+    call = { url: String(url), options }
+    return jsonResponse({ items: [{ id: 'stop-1', distance_meters: 42 }] })
+  }
+  try {
+    const result = await api.nearbyStop(28.61, 77.21)
+    assert.equal(result.items[0].id, 'stop-1')
+    assert.equal(call.url, 'https://api.example.test/api/v1/stops/nearby')
+    assert.equal(call.options.method, 'POST')
+    assert.deepEqual(JSON.parse(call.options.body), { latitude: 28.61, longitude: 77.21 })
+  } finally { globalThis.fetch = previousFetch }
+})
+
+

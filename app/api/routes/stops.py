@@ -1,14 +1,55 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+import math
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.database import connect, gtfs_is_usable
-from app.schemas import StopDemandResponse, StopDetailResponse, StopListResponse, StopMapResponse
+from app.schemas import NearbyStopRequest, NearbyStopsResponse, StopDemandResponse, StopDetailResponse, StopListResponse, StopMapResponse
 
 router = APIRouter(prefix="/stops", tags=["stops"])
+
+
+@router.post("/nearby", response_model=NearbyStopsResponse)
+def nearby_stops(request: NearbyStopRequest) -> dict:
+    """Return the nearest validated GTFS stop; coordinates are used for this query only."""
+    try:
+        con = connect()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail="Validated GTFS stops are unavailable") from exc
+    try:
+        if not gtfs_is_usable(con):
+            raise HTTPException(status_code=503, detail="Nearest-stop lookup requires validated static GTFS")
+        rows = con.execute(
+            """SELECT stop_id, stop_name, try_cast(stop_lat AS DOUBLE), try_cast(stop_lon AS DOUBLE)
+               FROM gtfs_stops WHERE try_cast(stop_lat AS DOUBLE) BETWEEN ? AND ?
+               AND try_cast(stop_lon AS DOUBLE) BETWEEN ? AND ?""",
+            [max(-90, request.latitude - 0.25), min(90, request.latitude + 0.25), max(-180, request.longitude - 0.25), min(180, request.longitude + 0.25)],
+        ).fetchall()
+    finally:
+        con.close()
+    candidates = []
+    for stop_id, stop_name, lat, lon in rows:
+        if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            continue
+        phi1, phi2 = math.radians(request.latitude), math.radians(lat)
+        dphi, dlambda = math.radians(lat - request.latitude), math.radians(lon - request.longitude)
+        haversine = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        distance = 6_371_000 * 2 * math.atan2(math.sqrt(haversine), math.sqrt(1 - haversine))
+        if distance <= 25_000:
+            candidates.append((distance, stop_id, stop_name, lat, lon))
+    candidates.sort()
+    return {
+        "items": [
+            {"id": item[1], "stop_name": item[2], "coordinates": {"latitude": item[3], "longitude": item[4]}, "distance_meters": round(item[0])}
+            for item in candidates[:1]
+        ],
+        "source": "validated static GTFS stops",
+        "generated_at": datetime.now(UTC),
+        "privacy_note": "Browser location was used for this lookup only and was not stored.",
+    }
 
 
 @router.get("", response_model=StopListResponse)
@@ -268,4 +309,6 @@ def stop_detail(stop_id: str) -> dict:
         }
     finally:
         con.close()
+
+
 

@@ -81,3 +81,5 @@ def classify_relative_load(
         "classified", category, "relative_historical_load",
         "Category is relative to the supplied comparable-day calibration; it is not an occupancy percentage.",
     )
+
+

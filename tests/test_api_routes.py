@@ -116,6 +116,22 @@ def test_map_and_gtfs_stop_search_are_unavailable_without_a_feed(analytics_db):
     assert missing_stops.value.status_code == 503
 
 
+def test_nearby_stop_uses_one_time_coordinates_and_returns_real_gtfs_identity(analytics_db, monkeypatch):
+    con = duckdb.connect(str(analytics_db))
+    con.execute("CREATE TABLE gtfs_stops(stop_id VARCHAR, stop_name VARCHAR, stop_lat VARCHAR, stop_lon VARCHAR)")
+    con.executemany("INSERT INTO gtfs_stops VALUES (?, ?, ?, ?)", [
+        ("stop-near", "Near Stop", "28.6101", "77.2101"),
+        ("stop-far", "Far Stop", "28.7000", "77.3000"),
+    ])
+    con.close()
+    monkeypatch.setattr(stops, "gtfs_is_usable", lambda _: True)
+    from app.schemas import NearbyStopRequest
+    result = stops.nearby_stops(NearbyStopRequest(latitude=28.61, longitude=77.21))
+    assert result["items"][0]["id"] == "stop-near"
+    assert result["items"][0]["distance_meters"] < 100
+    assert "not stored" in result["privacy_note"]
+
+
 def test_historical_analytics_return_recorded_volume(analytics_db):
     overview = analytics.overview()
     assert overview["dataset_rows"] == 4
@@ -165,3 +181,5 @@ def test_service_profile_keeps_source_category_fields_uninterpreted(analytics_db
     assert result["groups"][0]["is_ac"] is True
     assert result["groups"][0]["passenger_volume"] == 6
     assert "business definitions" in result["semantic_caveat"]
+
+

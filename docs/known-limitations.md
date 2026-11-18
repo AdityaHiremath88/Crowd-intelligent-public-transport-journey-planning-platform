@@ -30,3 +30,5 @@
 - Benchmark figures are warm-cache, local, direct-handler measurements and exclude HTTP serialization/concurrency; native DuckDB memory was not measured.
 - Docker is unavailable on the development host, so Docker build and runtime remain unverified.
 - Database writes and pipeline runs should be serialized; DuckDB is not configured as a multi-process concurrent write service.
+
+

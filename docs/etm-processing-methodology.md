@@ -38,3 +38,5 @@ Dates are based on transaction timestamp after conversion to Asia/Kolkata. Weekd
 ## Limitations
 
 Input data dictionary is incomplete. `start_stop_name` is treated as a label, not a verified physical boarding stop. `end_stop_name` is a ticket destination, not confirmed alighting. `route` is a normalized label, not GTFS route identity. `created_at` is transaction time. No trip inference is accepted from vehicle/route/time alone. These constraints block a valid segment occupancy estimator from the current file.
+
+

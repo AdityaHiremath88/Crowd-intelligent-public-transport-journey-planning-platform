@@ -58,7 +58,7 @@ GTFS is opt-in and must be acquired lawfully. Place it at `datasets/gtfs/raw/del
 
 ## 4. API inventory
 
-There are 28 business paths. Full Pydantic schemas, examples, errors, source and availability are in [API endpoint catalog](api-endpoint-catalog.md); use live `/openapi.json` as the exact deployed schema.
+There are 30 business paths. Full Pydantic schemas, examples, errors, source and availability are in [API endpoint catalog](api-endpoint-catalog.md); use live `/openapi.json` as the exact deployed schema.
 
 | Group | Method and path | Availability/meaning |
 |---|---|---|
@@ -83,8 +83,8 @@ There are 28 business paths. Full Pydantic schemas, examples, errors, source and
 | Prediction | `GET /api/v1/crowding/prediction?stop_id=...&target_date=YYYY-MM-DD&hour=0..23` | Historical ticket-activity baseline; current source returns `STALE`. |
 | Presence | `POST /api/v1/presence/signals` | One-time consented geofence signal; requires validated geocoded GTFS, currently unavailable. |
 | Presence | `GET /api/v1/presence/stops/{stop_id}` | Short-lived active pseudonymous signal total, not people waiting. |
-| Realtime | `GET /api/v1/realtime/status` | Config and feed health; currently `UNAVAILABLE`. |
-| Vehicles | `GET /api/v1/vehicles/live` | Fresh matched positions; empty/unavailable until authorized RT + static GTFS. |
+| Realtime | `GET /api/v1/realtime/status` | Config and feed health; currently `NOT_CONFIGURED` without both credentials. |
+| Vehicles | `GET /api/v1/vehicles/live` | Provider positions; route matching is labeled exact only when static GTFS confirms the route ID. |
 | Vehicles | `GET /api/v1/vehicles/{vehicle_id}` | One current position when available. |
 | Vehicles | `GET /api/v1/vehicles/route/{route_id}` | Fresh positions by GTFS route ID. |
 | Vehicles | `GET /api/v1/vehicles/{vehicle_id}/eta` | Explicitly unavailable until TripUpdates or a validated ETA method exists. |
@@ -154,9 +154,9 @@ When available, `GET /api/v1/presence/stops/{stop_id}` returns `signal_count` an
 
 ## 8. GTFS-Realtime, vehicles, ETA and journeys
 
-Realtime polling is dormant unless an operator-authorized `CROWDWISE_GTFS_RT_URL` is supplied. Configure API key/auth in backend environment only. OTD-style query-key auth is `CROWDWISE_GTFS_RT_AUTH_MODE=query`, `CROWDWISE_GTFS_RT_KEY_PARAMETER=key`, `CROWDWISE_GTFS_RT_API_KEY=<secret>`; header auth is the default. URLs must use HTTPS (localhost HTTP only for development). Redirects are rejected. Never add a key to frontend code or request examples.
+Realtime polling is dormant unless an operator-authorized `DELHI_GTFS_RT_URL` is supplied. Configure API key/auth in backend environment only. OTD-style query-key auth is `DELHI_GTFS_RT_API_KEY=<secret>` is sent using the provider-required `x-api-key` header.; header auth is the default. URLs must use HTTPS (localhost HTTP only for development). Redirects are rejected. Never add a key to frontend code or request examples.
 
-The parser only publishes current VehiclePositions with valid coordinates/timestamps and static GTFS trip/route/stop identity. Stale feed/positions and unknown references are dropped/flagged. `GET /api/v1/vehicles/live` carries `status=HEALTHY|STALE|UNAVAILABLE|ERROR`; no-feed currently returns an empty `UNAVAILABLE` list. `GET /api/v1/vehicles/{vehicle_id}/eta` explicitly returns 503 because a position alone is not a validated prediction. Journey search remains schedule-only with GTFS and does not use RT positions or community data. Current `/api/v1/journeys/search` returns 503 with no GTFS. Even after static GTFS is enabled, crowd ranking remains a time/transfer fallback with a response caveat.
+The parser only publishes current VehiclePositions with valid coordinates/timestamps and static GTFS trip/route/stop identity. Stale feed/positions and unknown references are dropped/flagged. `GET /api/v1/vehicles/live` carries `status=HEALTHY|STALE|NOT_CONFIGURED|ERROR`; no-feed currently returns an empty `NOT_CONFIGURED` list; after a prior successful poll, a failed poll preserves last-known positions and marks them `STALE_CACHED`. `GET /api/v1/vehicles/{vehicle_id}/eta` explicitly returns 503 because a position alone is not a validated prediction. Journey search remains schedule-only with GTFS and does not use RT positions or community data. Current `/api/v1/journeys/search` returns 503 with no GTFS. Even after static GTFS is enabled, crowd ranking remains a time/transfer fallback with a response caveat.
 
 ## 9. Status, freshness and confidence meanings
 
@@ -198,7 +198,7 @@ The community SQLite file and `.hmac-key` sidecar must be writable and persisten
 2. Search stops using `/api/v1/stops`; keep returned ID opaque. Current results are ETM labels without coordinates.
 3. Show historical stop/route summaries only with source/time caveats.
 4. Call journey search only if capabilities say scheduled search is enabled; handle 503 otherwise.
-5. Render community reports under a separate “reported” label. Never blend with historical demand or present as measured occupancy.
+5. Render community reports under a separate â€œreportedâ€ label. Never blend with historical demand or present as measured occupancy.
 6. Presence is hidden/disabled until `opt_in_presence=true` and only sent after user consent/action.
 7. Render vehicles only when realtime status is healthy and result item status is `LIVE_OBSERVED`; include freshness. Do not derive ETA from coordinates.
 8. Use the required X header on POSTs and handle 409/429/503 as above.
@@ -212,3 +212,7 @@ The community SQLite file and `.hmac-key` sidecar must be writable and persisten
 - [Deployment guide](deployment-guide.md)
 - [Known limitations](known-limitations.md)
 - [Ticket activity baseline methodology and measured backtest](demand-forecast-methodology.md)
+
+
+Nearby stop lookup: POST /api/v1/stops/nearby accepts a one-time user-requested coordinate, returns the nearest validated GTFS stop within 25 km, and does not store the coordinate. The route is unavailable until validated static GTFS is installed.
+

@@ -46,3 +46,5 @@ def aggregate_community_reports(stop_id: str, stop_name: str, reports: list[dict
         freshness_seconds=age,
         limitations=limitations,
     )
+
+

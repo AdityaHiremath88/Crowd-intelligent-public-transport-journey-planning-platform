@@ -36,3 +36,5 @@ def infer_ticket_trip(
         reason = "No source trip identifier is available; "
     reason += "available context does not uniquely separate repeated runs" + (f" ({', '.join(context)})." if context else ".")
     return TripInferenceResult("unavailable", None, "none", "unavailable", reason)
+
+

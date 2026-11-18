@@ -26,12 +26,13 @@ after(async () => {
   if (server && !server.killed) server.kill()
 })
 
-async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabled = false } = {}) {
+async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabled = false, liveStatus = 'NOT_CONFIGURED', liveVehicles = [] } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
   const page = await context.newPage()
   page.setDefaultTimeout(7000)
   page.setDefaultNavigationTimeout(7000)
   let submittedReports = 0
+  let nearbyLookup = null
   await context.route('http://localhost:8000/**', async route => {
     if (disconnected) return route.abort('failed')
     const request = route.request()
@@ -39,6 +40,9 @@ async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabl
     const path = url.pathname
     let response
     if (path === '/api/v1/system/capabilities') response = { scheduled_journey_search: scheduleEnabled, historical_ticket_analytics: true, community_reporting: true }
+    else if (path === '/api/v1/realtime/status') response = { status: liveStatus, configured: liveStatus !== 'NOT_CONFIGURED', authorized: false, current_vehicle_count: liveVehicles.length, stale_vehicle_count: liveVehicles.length, last_attempt_at: null, last_success_at: liveVehicles.length ? '2026-11-18T06:00:00Z' : null, feed_timestamp: null, last_error_code: liveStatus === 'ERROR' ? 'NETWORK_ERROR' : null, generated_at: '2026-11-18T06:01:00Z', data_source: 'test fixture' }
+    else if (path === '/api/v1/vehicles/live') response = { status: liveStatus, generated_at: '2026-11-18T06:01:00Z', last_success_at: liveVehicles.length ? '2026-11-18T06:00:00Z' : null, vehicles: liveVehicles, data_source: 'test fixture' }
+    else if (path === '/api/v1/stops/nearby' && request.method() === 'POST') { nearbyLookup = { url: request.url(), body: request.postDataJSON() }; response = { items: [{ id: 'gtfs-near-1', stop_name: 'Nearest GTFS Stop', coordinates: { latitude: 28.61, longitude: 77.21 }, distance_meters: 42 }], source: 'test fixture', generated_at: '2026-11-18T06:00:00Z', privacy_note: 'Location used once and not stored.' } }
     else if (path === '/api/v1/journeys/search' && request.method() === 'POST') response = {
       options: [{
         legs: [{ trip_id: 'trip-1', route_id: 'route-1', route_name: 'Route 101', from_stop: { stop_id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal' }, to_stop: { stop_id: 'etm_azadpur', stop_name: 'Azadpur Terminal' }, departure_datetime: '2026-11-18T13:00:00+05:30', arrival_datetime: '2026-11-18T13:40:00+05:30', stop_sequence: ['etm_rohini', 'etm_azadpur'] }],
@@ -68,7 +72,7 @@ async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabl
     await route.fulfill({ status: path === '/api/v1/reports/crowd' && reportStatus !== 201 ? reportStatus : 200, contentType: 'application/json', body: JSON.stringify(response) })
   })
   await page.goto(`${baseUrl}/`)
-  return { context, page, getSubmittedReports: () => submittedReports }
+  return { context, page, getSubmittedReports: () => submittedReports, getNearbyLookup: () => nearbyLookup }
 }
 
 async function selectStop(page, label, query) {
@@ -180,3 +184,49 @@ test('backend outage produces a visible connection state', async () => {
     await page.getByRole('button', { name: /Retry connection/ }).waitFor()
   } finally { await context.close() }
 })
+
+test('live map shows a clear not-configured state', async () => {
+  const { context, page } = await openApp()
+  try {
+    await page.getByRole('link', { name: 'Live map' }).click()
+    await page.getByText('NOT CONFIGURED', { exact: true }).waitFor()
+    await page.getByText(/Live bus positions need DELHI_GTFS_RT_API_KEY configured on the backend/).waitFor()
+    assert.equal(await page.locator('.live-marker').count(), 0)
+  } finally { await context.close() }
+})
+
+test('live map labels stale cached vehicle positions and provider-only route IDs', async () => {
+  const { context, page } = await openApp({ liveStatus: 'ERROR', liveVehicles: [{
+    vehicle_id: 'fixture-bus-1', trip_id: null, route_id: 'provider-route-7', latitude: 28.61, longitude: 77.21,
+    bearing: null, speed_meters_per_second: null, current_stop_id: null, current_stop_sequence: null, current_status: null,
+    route_id_match_status: 'PROVIDER_ID_ONLY',
+    position_timestamp: '2026-11-18T05:55:00Z', feed_timestamp: '2026-11-18T06:00:00Z', freshness_seconds: 360,
+    status: 'STALE_CACHED', data_source: 'test fixture',
+  }] })
+  try {
+    await page.getByRole('link', { name: 'Live map' }).click()
+    await page.getByText('ERROR', { exact: true }).waitFor()
+    await page.locator('.live-marker').waitFor()
+    await page.locator('.live-marker').click()
+    await page.getByText('Vehicle fixture-bus-1').waitFor()
+    await page.getByText(/Provider route ID: provider-route-7 \(not linked to validated static GTFS\)/).waitFor()
+    assert.equal(await page.getByText(/last-known cached observations/).count(), 1)
+  } finally { await context.close() }
+})
+
+test('current location is requested by the rider and sent once only to the nearest-stop API', async () => {
+  const { context, page, getNearbyLookup } = await openApp()
+  try {
+    await context.grantPermissions(['geolocation'], { origin: baseUrl })
+    await context.setGeolocation({ latitude: 28.61, longitude: 77.21, accuracy: 12 })
+    await page.getByRole('button', { name: 'Use my current location' }).click()
+    await page.getByRole('textbox', { name: 'ORIGIN POINT' }).waitFor()
+    await page.getByRole('textbox', { name: 'ORIGIN POINT' }).waitFor({ state: 'visible' })
+    await page.waitForFunction(() => document.querySelector('[data-stop-field="origin"]').value === 'Nearest GTFS Stop')
+    const lookup=getNearbyLookup()
+    assert.equal(new URL(lookup.url).search, '')
+    assert.deepEqual(lookup.body, { latitude: 28.61, longitude: 77.21 })
+  } finally { await context.close() }
+})
+
+

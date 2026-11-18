@@ -167,3 +167,5 @@ def test_ranking_time_component_includes_wait_before_first_bus():
     ranked = rank_journeys(options, "fastest", requested_departure_seconds=0)
     assert ranked[0].legs[0].trip_id == "later"
 
+
+

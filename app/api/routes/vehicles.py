@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from app.config import GTFS_RT_MAX_STALENESS_SECONDS
 
 from fastapi import APIRouter, HTTPException
 
@@ -20,7 +21,7 @@ def _status_response(raw: dict) -> RealtimeStatusResponse:
     state = raw["status"]
     current_count = raw.get("current_vehicle_count", 0) if state == "HEALTHY" else 0
     stale_count = raw.get("stale_vehicle_count", 0)
-    if state in {"STALE", "ERROR"}:
+    if state in {"STALE", "ERROR", "NOT_CONFIGURED"}:
         stale_count = max(stale_count, raw.get("current_vehicle_count", 0))
     return RealtimeStatusResponse(
         status=state, configured=raw["configured"], authorized=raw["authorized"],
@@ -38,12 +39,14 @@ def _vehicle_response(row: dict) -> VehiclePositionResponse:
     now = int(datetime.now(UTC).timestamp())
     return VehiclePositionResponse(
         vehicle_id=row["vehicle_id"], trip_id=row.get("trip_id"), route_id=row.get("route_id"),
+        route_id_match_status="VERIFIED_STATIC_GTFS" if row.get("route_id_matched") else "PROVIDER_ID_ONLY",
         latitude=row["latitude"], longitude=row["longitude"], bearing=row.get("bearing"),
         speed_meters_per_second=row.get("speed_mps"), current_stop_id=row.get("current_stop_id"),
         current_stop_sequence=row.get("current_stop_sequence"), current_status=row.get("current_status"),
         position_timestamp=datetime.fromtimestamp(row["position_timestamp"], UTC),
         feed_timestamp=_as_datetime(row.get("feed_timestamp")),
         freshness_seconds=max(0, now - row["position_timestamp"]),
+        status=("LIVE_OBSERVED" if now - row["position_timestamp"] <= GTFS_RT_MAX_STALENESS_SECONDS else "STALE_CACHED"),
         data_source=DATA_SOURCE,
     )
 
@@ -116,3 +119,5 @@ def vehicle_eta_unavailable(vehicle_id: str) -> dict:
             "message": "Vehicle position alone does not support a validated stop ETA; an authorized TripUpdates feed or validated travel-time model is required.",
         },
     )
+
+

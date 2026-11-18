@@ -4,16 +4,56 @@ const app = document.querySelector('#app')
 const toastNode = document.querySelector('#toast')
 const savedKey = 'yuktix.savedJourneys.v1'
 const tokenKey = 'yuktix.reportClient.v1'
-const state = { page: location.hash.slice(1) || 'home', origin: null, destination: null, stop: null, reportStop: null, reportRoute: null, preference: 'balanced', departure: new Date(Date.now() + 5 * 60000), reportCategory: null, reportFeedback: null, capabilities: null, capabilityError: null, results: null, selectedJourney: null, stopData: null, stopLoading: false, reportSent: false, operatorData: null, stopError: null }
+const state = { page: location.hash.slice(1) || 'home', origin: null, destination: null, stop: null, reportStop: null, reportRoute: null, preference: 'balanced', departure: new Date(Date.now() + 5 * 60000), reportCategory: null, reportFeedback: null, capabilities: null, capabilityError: null, results: null, selectedJourney: null, stopData: null, stopLoading: false, reportSent: false, operatorData: null, stopError: null, liveStatus: null, liveFeed: null, liveError: null, liveLoading: false, liveLoaded: false, map: null, liveTimer: null }
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[char])
 let toastTimer
 function toast(message) { toastNode.textContent = message; toastNode.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastNode.classList.remove('show'), 3200) }
 function pageHeader(title, subtitle = '', tools = '') { return `<header class="page-head"><button class="back-btn" data-action="back" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button><div class="page-title">${escapeHtml(title)}${subtitle ? `<span class="page-subtitle">${escapeHtml(subtitle)}</span>` : ''}</div><div class="page-tools">${tools}</div></header>` }
 function scheduleTime(value) { if(!value)return 'Not provided';const date=new Date(value);return escapeHtml(Number.isNaN(date.getTime())?value:date.toLocaleString([], {dateStyle:'medium',timeStyle:'short'})) }
-function brandHeader() { return `<header class="topbar"><a class="brand" href="#home"><span class="brand-mark">Y</span><span>YUKTIX<small>DELHI TRANSIT GRID</small></span></a><div class="header-actions"><button class="icon-btn" data-route="operator" aria-label="Operator insights"><span class="material-symbols-outlined">grid_view</span></button><button class="avatar" data-route="auth" aria-label="Account"><span class="material-symbols-outlined">person</span></button></div></header>` }
+function brandHeader() { return `<header class="topbar"><a class="brand" href="#home"><span class="brand-mark">C</span><span>CROWDWISE<small>DELHI TRANSIT GRID</small></span></a><div class="header-actions"><button class="icon-btn" data-route="operator" aria-label="Operator insights"><span class="material-symbols-outlined">grid_view</span></button><button class="avatar" data-route="auth" aria-label="Account"><span class="material-symbols-outlined">person</span></button></div></header>` }
 function bottomNav() {
-  const active = state.page === 'home' ? 'home' : ['results','journey','rides'].includes(state.page) ? 'rides' : state.page === 'stop' ? 'stops' : state.page === 'report' ? 'report' : ''
-  return `<nav class="bottom-nav" aria-label="Main navigation"><a class="${active==='home'?'selected':''}" href="#home"><span class="material-symbols-outlined">explore</span>Go</a><a class="${active==='rides'?'selected':''}" href="#rides"><span class="material-symbols-outlined">all_inclusive</span>Your rides</a><a class="${active==='stops'?'selected':''}" href="#stop"><span class="material-symbols-outlined">location_on</span>Stops</a><a class="${active==='report'?'selected':''}" href="#report"><span class="material-symbols-outlined">flag</span>Report</a></nav>`
+  const active = state.page === 'home' ? 'home' : ['results','journey','rides'].includes(state.page) ? 'rides' : state.page === 'live' ? 'live' : state.page === 'stop' ? 'stops' : state.page === 'report' ? 'report' : ''
+  return `<nav class="bottom-nav" aria-label="Main navigation"><a class="${active==='home'?'selected':''}" href="#home"><span class="material-symbols-outlined">explore</span>Go</a><a class="${active==='live'?'selected':''}" href="#live"><span class="material-symbols-outlined">map</span>Live map</a><a class="${active==='rides'?'selected':''}" href="#rides"><span class="material-symbols-outlined">all_inclusive</span>Your rides</a><a class="${active==='stops'?'selected':''}" href="#stop"><span class="material-symbols-outlined">location_on</span>Stops</a><a class="${active==='report'?'selected':''}" href="#report"><span class="material-symbols-outlined">flag</span>Report</a></nav>`
+}
+function liveMapPage() {
+  const status=state.liveStatus?.status||state.liveFeed?.status||'UNAVAILABLE'
+  const vehicles=state.liveFeed?.vehicles||[]
+  const message={NOT_CONFIGURED:'Live bus positions need DELHI_GTFS_RT_API_KEY configured on the backend.',UNAVAILABLE:'The backend has not received a successful feed yet.',STALE:'Showing last-known positions; the provider feed is stale.',ERROR:'The latest provider request failed. Any positions shown are last-known cached observations.',HEALTHY:`${vehicles.length} vehicle position${vehicles.length===1?'':'s'} received from the latest feed.`}[status]||'Live feed status is unavailable.'
+  return `${pageHeader('Live bus map','Official GTFS-Realtime positions')}<main class="screen"><section class="live-map-card"><div class="live-feed-summary"><div><span class="live-feed-status" data-status="${escapeHtml(status)}">${escapeHtml(status.replaceAll('_',' '))}</span><p>${escapeHtml(state.liveError||message)}</p><p>${state.liveStatus?.last_success_at?`Last successful fetch: ${scheduleTime(state.liveStatus.last_success_at)}`:'No successful feed fetch recorded.'}</p></div><button class="text-link" data-action="retry-live" ${state.liveLoading?'disabled':''}>${state.liveLoading?'Refreshing…':'Refresh'}</button></div><div id="live-map" class="live-map" role="application" aria-label="Map of buses with valid Delhi Transport Stack GPS positions"></div><p class="live-map-note">Markers use provider GPS coordinates and show their last observation time. Route IDs are shown as provider identifiers unless matched to validated static GTFS. A single position does not indicate direction or movement. Map tiles © OpenStreetMap contributors.</p></section><p class="subtle-note">Feed refresh policy: backend polls every 60 seconds by default. Vehicle Positions do not provide a validated arrival time or passenger count.</p></main>${bottomNav()}`
+}
+function drawLiveMap() {
+  const node=document.getElementById('live-map')
+  if(!node)return
+  if(!window.L){node.innerHTML='<div class="crowd-state">The map library could not be loaded. Vehicle feed status remains available above; retry when online.</div>';return}
+  state.map=window.L.map(node,{scrollWheelZoom:false}).setView([28.6139,77.2090],11)
+  const tileUrl=window.CROWDWISE_TILE_URL||window.YUKTIX_TILE_URL||'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  window.L.tileLayer(tileUrl,{maxZoom:19,attribution:window.CROWDWISE_TILE_ATTRIBUTION||window.YUKTIX_TILE_ATTRIBUTION||'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(state.map)
+  const vehicles=state.liveFeed?.vehicles||[]
+  const points=[]
+  for(const vehicle of vehicles){
+    const lat=Number(vehicle.latitude),lon=Number(vehicle.longitude)
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat < -90||lat > 90||lon < -180||lon > 180)continue
+    const stale=vehicle.status==='STALE_CACHED'||state.liveFeed?.status!=='HEALTHY'
+    const icon=window.L.divIcon({className:'',html:`<span class="live-marker ${stale?'stale':''}"><span class="material-symbols-outlined">directions_bus</span></span>`,iconSize:[34,34],iconAnchor:[17,17]})
+    const route=vehicle.route_id?(vehicle.route_id_match_status==='VERIFIED_STATIC_GTFS'?`<br>Verified GTFS route ID: ${escapeHtml(vehicle.route_id)}`:`<br>Provider route ID: ${escapeHtml(vehicle.route_id)} (not linked to validated static GTFS)`):'<br>Route: not supplied'
+    const stop=vehicle.current_stop_id?`<br>Provider stop ID: ${escapeHtml(vehicle.current_stop_id)}`:''
+    const freshness=Number(vehicle.freshness_seconds)
+    const age=Number.isFinite(freshness)?`${Math.floor(freshness/60)} min ${freshness%60} sec ago`:'age unavailable'
+    const content=`<strong>Vehicle ${escapeHtml(vehicle.vehicle_id)}</strong><br>${stale?'Last-known position':'GPS observation'}: ${scheduleTime(vehicle.position_timestamp)}<br>Position age: ${escapeHtml(age)}${route}${stop}`
+    window.L.marker([lat,lon],{icon}).addTo(state.map).bindPopup(content)
+    points.push([lat,lon])
+  }
+  if(points.length)state.map.fitBounds(points,{padding:[28,28],maxZoom:14})
+}
+async function loadLiveData() {
+  if(state.liveLoading)return
+  state.liveLoading=true
+  try{
+    const [feed,status]=await Promise.allSettled([api.liveVehicles(),api.realtimeStatus()])
+    state.liveFeed=feed.status==='fulfilled'?feed.value:null
+    state.liveStatus=status.status==='fulfilled'?status.value:(feed.status==='fulfilled'?feed.value:null)
+    state.liveError=feed.status==='rejected'?feed.reason.message:null
+  }finally{state.liveLoaded=true;state.liveLoading=false;if(state.page==='live')render()}
 }
 function autocomplete(field, label, value, hint = '') {
   return `<label class="location-row ${field}-row"><span class="location-dot ${field==='origin'?'origin-dot':'destination-dot'}"></span><span class="field-copy"><span class="field-label">${label}</span><span class="stop-autocomplete" data-autocomplete="${field}"><input data-stop-field="${field}" value="${escapeHtml(value)}" placeholder="Search a Delhi bus stop" autocomplete="off" aria-label="${label}"><span class="suggestions" data-suggestions="${field}" hidden></span></span><small>${hint}</small></span></label>`
@@ -22,7 +62,7 @@ function homePage() {
   const originName = state.origin?.stop_name || ''
   const destinationName = state.destination?.stop_name || ''
   return `${brandHeader()}<main class="screen"><section class="hero"><div class="orbit" aria-hidden="true"><i></i><b></b></div><div class="hero-copy"><span class="grid-pill"><i></i>Delhi Transit Grid</span><h1>Where to<br>today?</h1></div></section>
-    <section class="search-card" aria-label="Plan your journey">${autocomplete('origin','ORIGIN POINT',originName,'Choose a stop from the static GTFS list')}
+    <section class="search-card" aria-label="Plan your journey">${autocomplete('origin','ORIGIN POINT',originName,'Choose a stop from the static GTFS list')}<button class="text-link location-action" data-action="current-location" ${state.locationLoading?'disabled':''}>${state.locationLoading?'Finding nearest stop…':'Use my current location'}</button><p class="subtle-note">Your browser will ask permission. Coordinates are sent once to find a nearby stop and are not stored.</p>
       <div class="swap-line"><span></span><button class="swap" data-action="swap" aria-label="Swap origin and destination"><span class="material-symbols-outlined">swap_vert</span></button></div>
       ${autocomplete('destination','DESTINATION',destinationName,'Choose a stop from the static GTFS list')}
       <div class="options"><label class="time-chip"><span class="material-symbols-outlined">schedule</span><span>Depart</span><input data-departure type="datetime-local" value="${new Date(state.departure.getTime()-state.departure.getTimezoneOffset()*60000).toISOString().slice(0,16)}" aria-label="Departure date and time"></label><button class="choice-chip ${state.preference==='balanced'?'active':''}" data-action="preference" data-value="balanced"><i></i>Balanced</button><button class="choice-chip ${state.preference==='fastest'?'active':''}" data-action="preference" data-value="fastest"><span class="material-symbols-outlined">bolt</span>Fastest</button><button class="choice-chip ${state.preference==='comfort'?'active':''}" data-action="preference" data-value="comfort"><span class="material-symbols-outlined">accessible</span>Comfort</button></div>
@@ -38,7 +78,7 @@ function resultsPage() {
     const duration=Math.round((journey.duration_seconds||0)/60)
     return `<article class="recommended-card"><div class="route-top"><span class="route-number">${escapeHtml(first?.route_name||first?.route_id||'Scheduled journey')}</span>${index===0?'<span class="recommended-tag">BACKEND RESULT</span>':''}<span class="live-in">${escapeHtml(journey.eta_source||'Scheduled data')}</span></div><div class="trip-grid"><div><div class="trip-duration">${duration}<small> MIN</small></div><div class="trip-kind">${Number(journey.transfers)||0} transfers · scheduled</div></div><div class="crowd-placeholder"><b>Crowding unknown</b><small>No onboard occupancy data</small></div></div><div class="timeline-card"><div class="timeline-stops"><span>${escapeHtml(first?.from_stop?.stop_name||state.origin?.stop_name)}</span><span class="route-name">${escapeHtml(first?.route_name||first?.route_id||'')}</span><span style="text-align:right">${escapeHtml(last?.to_stop?.stop_name||state.destination?.stop_name)}</span></div><p class="subtle-note">${scheduleTime(journey.departure_datetime)} → ${scheduleTime(journey.arrival_datetime)} · scheduled, not live</p><p class="subtle-note">${escapeHtml(journey.legs?.length||0)} leg(s) · ${duration} min · source: ${escapeHtml(state.results?.data_source||'schedule service')}</p></div><button class="primary-action" data-action="open-journey" data-index="${index}">VIEW JOURNEY DETAILS <span class="material-symbols-outlined">arrow_forward</span></button></article>`
   }).join('')
-  return `${pageHeader('Journey options')}<main class="screen"><div class="result-summary"><i class="summary-point"></i><span>${escapeHtml(state.origin?.stop_name||'Choose origin')}</span><span class="material-symbols-outlined summary-arrow">east</span><span>${escapeHtml(state.destination?.stop_name||'Choose destination')}</span><a href="#home" class="summary-edit" aria-label="Edit journey"><span class="material-symbols-outlined">edit</span></a></div><div class="filter-tabs">${[['balanced','Balanced'],['fastest','⚡ Fastest'],['comfort','♿ Comfort']].map(([v,l])=>`<button class="filter-tab ${state.preference===v?'active':''}" data-action="preference" data-value="${v}" ${state.journeyLoading?'disabled':''}>${l}</button>`).join('')}</div>${state.journeyLoading?'<div class="crowd-state">Loading the saved timetable and searching for scheduled trips…</div>':unavailable?`<div class="crowd-state"><strong>Journey planning unavailable</strong><br>${escapeHtml(state.results?.message||'A validated Delhi GTFS schedule is not currently connected. Yuktix will show routes only when the backend confirms them.')}</div><button class="primary-action" data-action="retry-search">RETRY JOURNEY SEARCH</button>`:cards||'<div class="crowd-state">The schedule service returned no journeys for these stops and departure time.</div>'}</main>${bottomNav()}`
+  return `${pageHeader('Journey options')}<main class="screen"><div class="result-summary"><i class="summary-point"></i><span>${escapeHtml(state.origin?.stop_name||'Choose origin')}</span><span class="material-symbols-outlined summary-arrow">east</span><span>${escapeHtml(state.destination?.stop_name||'Choose destination')}</span><a href="#home" class="summary-edit" aria-label="Edit journey"><span class="material-symbols-outlined">edit</span></a></div><div class="filter-tabs">${[['balanced','Balanced'],['fastest','⚡ Fastest'],['comfort','♿ Comfort']].map(([v,l])=>`<button class="filter-tab ${state.preference===v?'active':''}" data-action="preference" data-value="${v}" ${state.journeyLoading?'disabled':''}>${l}</button>`).join('')}</div>${state.journeyLoading?'<div class="crowd-state">Loading the saved timetable and searching for scheduled trips…</div>':unavailable?`<div class="crowd-state"><strong>Journey planning unavailable</strong><br>${escapeHtml(state.results?.message||'A validated Delhi GTFS schedule is not currently connected. CrowdWise will show routes only when the backend confirms them.')}</div><button class="primary-action" data-action="retry-search">RETRY JOURNEY SEARCH</button>`:cards||'<div class="crowd-state">The schedule service returned no journeys for these stops and departure time.</div>'}</main>${bottomNav()}`
 }
 function journeyPage() {
   const journey=state.selectedJourney
@@ -86,7 +126,7 @@ function ridesPage() {
   return `${pageHeader('Your rides')}<main class="screen">${saved.length?saved.map((item,i)=>`<article class="saved-item"><span class="kicker">SAVED SCHEDULED JOURNEY · THIS DEVICE</span><h2>${escapeHtml(item.origin)} <span style="color:#98421b">→</span> ${escapeHtml(item.destination)}</h2><p class="subtle-note">${escapeHtml(item.legs?.map(leg=>leg.route_name||leg.route_id).join(' · ')||'Scheduled itinerary')} · saved locally; not synced</p><button class="text-link" data-action="restore-ride" data-index="${i}">Open details →</button><button class="text-link" data-action="remove-ride" data-index="${i}">Remove</button></article>`).join(''):`<div class="saved-empty"><span class="material-symbols-outlined">all_inclusive</span><h2>No saved journeys yet</h2><p>Only journeys confirmed by the schedule service can be saved.</p><button class="primary-action" data-route="home">PLAN A JOURNEY</button></div>`}</main>${bottomNav()}`
 }
 function authPage() {
-  return `${pageHeader('Account')}<main class="screen"><div class="crowd-state"><strong>Accounts are not available yet.</strong><br>Yuktix has no authentication service connected. No credentials are collected or accepted. You can use stop insights and community reporting without signing in.</div><button class="primary-action" data-route="home">CONTINUE WITHOUT AN ACCOUNT</button></main>${bottomNav()}`
+  return `${pageHeader('Account')}<main class="screen"><div class="crowd-state"><strong>Accounts are not available yet.</strong><br>CrowdWise has no authentication service connected. No credentials are collected or accepted. You can use stop insights and community reporting without signing in.</div><button class="primary-action" data-route="home">CONTINUE WITHOUT AN ACCOUNT</button></main>${bottomNav()}`
 }
 function operatorBars(data){
   const items=data?.points||data?.items||data?.trends||[]
@@ -103,10 +143,17 @@ function operatorPage() {
 }
 function render() {
   const nextPage=location.hash.slice(1)||'home'
+  if(state.map){state.map.remove();state.map=null}
+  if(nextPage!=='live'&&state.liveTimer){clearInterval(state.liveTimer);state.liveTimer=null}
   if(nextPage==='report'&&state.page!=='report'){state.reportStop=state.stop||state.origin;state.reportCategory=null;state.reportSent=false}
   state.page=nextPage
-  const pages={home:homePage,results:resultsPage,journey:journeyPage,stop:stopPage,report:reportPage,rides:ridesPage,auth:authPage,operator:operatorPage}
+  const pages={home:homePage,results:resultsPage,journey:journeyPage,live:liveMapPage,stop:stopPage,report:reportPage,rides:ridesPage,auth:authPage,operator:operatorPage}
   app.innerHTML=(pages[state.page]||homePage)()
+  if(state.page==='live'){
+    drawLiveMap()
+    if(!state.liveTimer)state.liveTimer=setInterval(()=>{if(state.page==='live')loadLiveData()},60000)
+    if(!state.liveLoaded&&!state.liveLoading)loadLiveData()
+  }
   if(state.page==='stop'&&(state.stop||state.origin)?.id&&!state.stopData&&!state.stopLoading){state.stop=state.stop||state.origin;loadStopData(state.stop)}
 }
 async function loadDefaults(){
@@ -136,7 +183,25 @@ async function resolveStop(field){
   if(box){box.innerHTML=matches.length?matches.map(s=>suggestionHtml(s,field)).join(''):'<div class="suggestion">No matching stop. Try another name.</div>';box.hidden=false}
   return null
 }
-function suggestionHtml(stop,field){const coordinates=stop.coordinates&&Number.isFinite(Number(stop.coordinates.latitude))&&Number.isFinite(Number(stop.coordinates.longitude))?`${Number(stop.coordinates.latitude).toFixed(5)}, ${Number(stop.coordinates.longitude).toFixed(5)} · GTFS coordinates`:`Stop ID ${escapeHtml(stop.id)} · location not verified`;return `<button type="button" class="suggestion" data-action="choose-stop" data-field="${field}" data-stop-id="${escapeHtml(stop.id)}" data-stop-name="${escapeHtml(stop.stop_name)}"><span>${escapeHtml(stop.stop_name)}</span><small>${coordinates}</small></button>`}
+async function useCurrentLocation(){
+  if(!navigator.geolocation){toast('This browser does not provide location. Search for a stop by name.');return}
+  state.locationLoading=true;render()
+  navigator.geolocation.getCurrentPosition(async position=>{
+    try{
+      const result=await api.nearbyStop(position.coords.latitude,position.coords.longitude)
+      const nearest=result.items?.[0]
+      if(!nearest){toast('No validated bus stop was found within 25 km. Search by stop name instead.');return}
+      state.origin={id:nearest.id,stop_name:nearest.stop_name,coordinates:nearest.coordinates}
+      toast(`Origin set to ${nearest.stop_name} · ${nearest.distance_meters} m away`)
+    }catch(error){toast(error.status===503?'Nearest-stop lookup needs a validated static GTFS dataset. Search by stop name instead.':`Could not find a nearby stop: ${error.message}`)}
+    finally{state.locationLoading=false;render()}
+  },error=>{
+    state.locationLoading=false;render()
+    const message=error.code===error.PERMISSION_DENIED?'Location permission was denied. You can search for a stop by name.':error.code===error.TIMEOUT?'Location lookup timed out. Try again or search by stop name.':'Your location is unavailable. Search for a stop by name.'
+    toast(message)
+  },{enableHighAccuracy:false,timeout:10000,maximumAge:0})
+}
+function suggestionHtml(stop,field){const coordinates=stop.coordinates&&Number.isFinite(Number(stop.coordinates.latitude))&&Number.isFinite(Number(stop.coordinates.longitude))?`${Number(stop.coordinates.latitude).toFixed(5)}, ${Number(stop.coordinates.longitude).toFixed(5)} · GTFS coordinates`:`Stop ID ${escapeHtml(stop.id)} · location not verified`;return `<button type="button" class="suggestion" aria-label="${escapeHtml(stop.stop_name)}" data-action="choose-stop" data-field="${field}" data-stop-id="${escapeHtml(stop.id)}" data-stop-name="${escapeHtml(stop.stop_name)}"><span>${escapeHtml(stop.stop_name)}</span><small>${coordinates}</small></button>`}
 async function showSuggestions(field,query){
   const box=document.querySelector(`[data-suggestions="${field}"]`)
   if(!box)return
@@ -220,11 +285,13 @@ async function clickHandler(event){
   if(action==='feedback'){state.reportFeedback=state.reportFeedback===value?null:value;render()}
   if(action==='submit-report')await submitReport()
   if(action==='save')saveJourney()
-  if(action==='share'){if(!state.selectedJourney){toast('There is no confirmed journey to share.');return}const text=`Yuktix scheduled journey: ${state.origin?.stop_name} to ${state.destination?.stop_name}`;try{if(navigator.share)await navigator.share({title:'Yuktix scheduled journey',text});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);toast('Journey summary copied.')}else toast('Sharing is not supported by this browser.')}catch(error){if(error.name!=='AbortError')toast('Could not share this journey.')}}
+  if(action==='share'){if(!state.selectedJourney){toast('There is no confirmed journey to share.');return}const text=`CrowdWise scheduled journey: ${state.origin?.stop_name} to ${state.destination?.stop_name}`;try{if(navigator.share)await navigator.share({title:'CrowdWise scheduled journey',text});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);toast('Journey summary copied.')}else toast('Sharing is not supported by this browser.')}catch(error){if(error.name!=='AbortError')toast('Could not share this journey.')}}
   if(action==='restore-ride'){try{const item=JSON.parse(localStorage.getItem(savedKey)||'[]')[Number(node.dataset.index)];if(item?.originId&&item?.destinationId&&Array.isArray(item.legs)&&item.legs.length){state.selectedJourney=item;state.origin={id:item.originId,stop_name:item.origin};state.destination={id:item.destinationId,stop_name:item.destination};location.hash='#journey'}else toast('This saved item has no confirmed schedule details. Remove it and plan again.')}catch{toast('Saved journeys could not be read from browser storage.')}}
   if(action==='remove-ride'){try{const list=JSON.parse(localStorage.getItem(savedKey)||'[]');list.splice(Number(node.dataset.index),1);localStorage.setItem(savedKey,JSON.stringify(list));render()}catch{toast('Could not update browser storage.')}}
   if(action==='retry-stop'&&state.stop)loadStopData(state.stop)
   if(action==='retry-operator'){state.operatorData={loading:true};render();loadOperator()}
+  if(action==='retry-live')await loadLiveData()
+  if(action==='current-location')await useCurrentLocation()
 }
 app.addEventListener('click',clickHandler)
 app.addEventListener('input',event=>{
@@ -249,3 +316,5 @@ async function loadOperator(){
 }
 render()
 loadDefaults()
+
+

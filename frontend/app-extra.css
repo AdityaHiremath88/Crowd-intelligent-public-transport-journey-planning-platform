@@ -3,3 +3,15 @@
 .bottom-nav{position:fixed;z-index:40;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);min-height:72px;padding:7px 14px max(8px,env(safe-area-inset-bottom));display:flex;justify-content:space-around;align-items:center;background:#fff8f3ee;backdrop-filter:blur(17px)}.bottom-nav:before{content:"";position:absolute;inset:5px 12px 7px;background:#fff;border-radius:99px;box-shadow:0 12px 36px -6px #38233318;z-index:-1}.bottom-nav a{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;color:#56433b;text-decoration:none;font:600 11px Inter,sans-serif;padding:10px 5px;border-radius:99px;white-space:nowrap}.bottom-nav a .material-symbols-outlined{font-size:19px}.bottom-nav a.selected{background:#ffb0ce;color:#390721;box-shadow:0 4px 16px -2px #3823331f}.hidden{display:none!important}
 @media(max-width:370px){.screen{padding-left:14px;padding-right:14px}.hero{height:180px}.hero h1{font-size:35px}.page-head{padding-inline:12px}.result-summary{font-size:12px}.trip-duration{font-size:38px}.recommended-card{padding:17px}.crowd-option{grid-template-columns:46px 1fr 24px;gap:9px;padding:10px}.crowd-option-icon{width:44px;height:44px}.crowd-option-copy strong{font-size:13px}}
 @media(min-width:700px){body{padding:20px 0}.app-shell{min-height:calc(100dvh - 40px);border-radius:28px;box-shadow:0 18px 70px #38233316}.topbar{border-radius:28px 28px 0 0}.bottom-nav{bottom:20px}}
+
+.live-map-card{background:#fff;border:1px solid #f0e1d8;border-radius:22px;padding:15px;margin:14px 0;box-shadow:0 5px 18px #3823330b}
+.live-feed-summary{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font:500 12px/1.5 Inter,sans-serif;color:#56433b}
+.live-feed-status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 10px;background:#f4ede6;color:#704b3a;font:700 10px Inter,sans-serif;text-transform:uppercase;white-space:nowrap}
+.live-feed-status[data-status="HEALTHY"]{background:#edf9f3;color:#14694f}.live-feed-status[data-status="STALE"],.live-feed-status[data-status="ERROR"]{background:#fff0d4;color:#805800}
+.live-map{height:min(54vh,480px);min-height:290px;border-radius:17px;overflow:hidden;background:#eee9e4;z-index:0}
+.live-map-note{font:500 11px/1.5 Inter,sans-serif;color:#806d70;margin:10px 2px 2px}
+.live-marker{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#98421b;color:#fff;border:3px solid #fff;box-shadow:0 3px 10px #2e1b1466}
+.live-marker.stale{background:#806d70}.live-marker .material-symbols-outlined{font-size:18px}
+.leaflet-popup-content{font:500 12px/1.5 Inter,sans-serif}.leaflet-popup-content strong{font-size:13px}
+@media(prefers-color-scheme:dark){.live-map-card{background:#22201f;border-color:#3b3532}.live-feed-summary,.live-map-note{color:#d8cbc3}.live-feed-status{background:#39312e;color:#ead6ca}.live-feed-status[data-status="HEALTHY"]{background:#18392d;color:#a9e8cc}.live-feed-status[data-status="STALE"],.live-feed-status[data-status="ERROR"]{background:#463b22;color:#f0d58d}}
+
