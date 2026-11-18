@@ -208,7 +208,7 @@ async function showSuggestions(field,query){
   if(query.trim().length<2){box.hidden=true;return}
   const input=document.querySelector(`[data-stop-field="${field}"]`),version=(input._searchVersion||0)+1;input._searchVersion=version
   box.innerHTML='<div class="suggestion">Searching stops…</div>';box.hidden=false
-  try{const items=await api.searchStops(query,8);if(input._searchVersion!==version)return;box.innerHTML=items.length?items.map(s=>suggestionHtml(s,field)).join(''):'<div class="suggestion">No matching stops found.</div>'}catch{if(input._searchVersion===version)box.innerHTML='<div class="suggestion">Stop search is unavailable. Check the backend connection.</div>'}
+  try{const items=await api.searchStops(query,8);if(input._searchVersion!==version)return;box.innerHTML=items.length?items.map(s=>suggestionHtml(s,field)).join(''):'<div class="suggestion">No matching stops found.</div>'}catch(error){if(input._searchVersion===version){const message=error.status===503?'Stop data is not installed. Load the ETM dataset or validated static GTFS to search stops.':error.status===0?'Cannot reach the backend. Check that the API is running.':`Stop search failed: ${error.message}`;box.innerHTML=`<div class="suggestion">${escapeHtml(message)}</div>`}}
 }
 async function journeySearch(){
   const button=document.querySelector('[data-action="search"]');if(button)button.disabled=true

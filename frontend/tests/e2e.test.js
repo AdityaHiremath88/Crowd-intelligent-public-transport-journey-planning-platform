@@ -26,7 +26,7 @@ after(async () => {
   if (server && !server.killed) server.kill()
 })
 
-async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabled = false, liveStatus = 'NOT_CONFIGURED', liveVehicles = [] } = {}) {
+async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabled = false, stopsUnavailable = false, liveStatus = 'NOT_CONFIGURED', liveVehicles = [] } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
   const page = await context.newPage()
   page.setDefaultTimeout(7000)
@@ -49,6 +49,7 @@ async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabl
         departure_datetime: '2026-11-18T13:00:00+05:30', arrival_datetime: '2026-11-18T13:40:00+05:30', duration_seconds: 2400, waiting_seconds: 300, transfers: 0, transfer_stops: [], eta_source: 'static_gtfs_schedule', crowd_status: 'unavailable', score: 1, score_components: {},
       }], origin_stop_id: 'etm_rohini', destination_stop_id: 'etm_azadpur', preference: 'balanced', data_source: 'GTFS static schedule', data_status: 'scheduled', generated_at: '2026-11-18T07:00:00Z', crowd_data_available: false, ranking_note: 'scheduled', walking_connections_available: false, message: null,
     }
+    else if (path === '/api/v1/stops' && stopsUnavailable) response = { detail: 'ETM has not been processed yet' }
     else if (path === '/api/v1/stops') {
       const q = (url.searchParams.get('q') || '').toLowerCase()
       const stop = q.includes('azadpur')
@@ -69,7 +70,8 @@ async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabl
         : reportStatus === 429 ? { detail: { code: 'RATE_LIMITED', message: 'Too many reports. Please try again later.' } }
           : { detail: { code: 'DUPLICATE_REPORT', message: 'A recent report from this app is already active for this stop.' } }
     } else response = { detail: 'Unexpected request in browser test' }
-    await route.fulfill({ status: path === '/api/v1/reports/crowd' && reportStatus !== 201 ? reportStatus : 200, contentType: 'application/json', body: JSON.stringify(response) })
+    const status = path === '/api/v1/stops' && stopsUnavailable ? 503 : path === '/api/v1/reports/crowd' && reportStatus !== 201 ? reportStatus : 200
+    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(response) })
   })
   await page.goto(`${baseUrl}/`)
   return { context, page, getSubmittedReports: () => submittedReports, getNearbyLookup: () => nearbyLookup }
@@ -182,6 +184,15 @@ test('backend outage produces a visible connection state', async () => {
   try {
     await page.getByText(/Backend status unavailable/).waitFor()
     await page.getByRole('button', { name: /Retry connection/ }).waitFor()
+  } finally { await context.close() }
+})
+
+test('stop search distinguishes missing local data from a backend connection failure', async () => {
+  const { context, page } = await openApp({ stopsUnavailable: true })
+  try {
+    await page.getByRole('textbox', { name: 'ORIGIN POINT' }).fill('Ma')
+    await page.getByText(/Stop data is not installed/).waitFor()
+    await page.getByText(/validated static GTFS/).waitFor()
   } finally { await context.close() }
 })
 
