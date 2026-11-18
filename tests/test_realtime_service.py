@@ -90,8 +90,9 @@ def test_parser_rejects_unknown_trip_and_differential_feed():
     entity.vehicle.position.longitude = 77.2
     entity.vehicle.timestamp = now
     parsed = parse_vehicle_positions(feed.SerializeToString(), routes=set(), trips={}, stops=set(), now_epoch=now)
-    assert parsed["vehicles"] == []
-    assert parsed["malformed_count"] == 1
+    assert len(parsed["vehicles"]) == 1
+    assert parsed["vehicles"][0]["trip_id"] == "missing-trip"
+    assert parsed["malformed_count"] == 0
 
 
 def test_missing_feed_configuration_is_a_safe_unavailable_condition(monkeypatch, tmp_path):

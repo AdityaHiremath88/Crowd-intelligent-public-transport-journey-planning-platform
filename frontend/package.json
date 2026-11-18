@@ -1,0 +1,20 @@
+{
+  "name": "yuktix-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python -m http.server 5173 --bind 127.0.0.1",
+    "dev:network": "python -m http.server 5173 --bind 0.0.0.0",
+    "build": "node --check app.js && node --check api.js && node --check service-worker.js",
+    "test": "node --test tests/api.test.js",
+    "test:e2e": "node --test tests/e2e.test.js",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "playwright-core": "^1.65.1"
+  }
+}

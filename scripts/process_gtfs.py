@@ -46,7 +46,11 @@ def process_gtfs(
             staging = Path(tmp)
             with ZipFile(zip_path) as archive:
                 for member in archive.namelist():
-                    if Path(member).name.lower().endswith(".txt"):
+                    if (
+                        Path(member).name.lower().endswith(".txt")
+                        and not Path(member).name.startswith("._")
+                        and not member.startswith("__MACOSX/")
+                    ):
                         target = staging / Path(member).name.lower()
                         with archive.open(member) as source, target.open("wb") as output:
                             output.write(source.read())
@@ -95,7 +99,7 @@ def process_gtfs(
             ),
             "invalid_stop_sequence": (
                 "SELECT count(*) FROM gtfs_stop_times WHERE "
-                "try_cast(stop_sequence AS INTEGER) IS NULL OR try_cast(stop_sequence AS INTEGER) <= 0"
+                "try_cast(stop_sequence AS INTEGER) IS NULL OR try_cast(stop_sequence AS INTEGER) < 0"
             ),
             "trips_without_stop_times": (
                 "SELECT count(*) FROM gtfs_trips t LEFT JOIN "

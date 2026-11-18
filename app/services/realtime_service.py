@@ -20,7 +20,6 @@ from app.config import (
     GTFS_RT_AUTH_MODE, GTFS_RT_KEY_PARAMETER, GTFS_RT_MAX_STALENESS_SECONDS,
     GTFS_RT_POLL_SECONDS, GTFS_RT_TIMEOUT_SECONDS, GTFS_RT_URL,
 )
-from app.services.gtfs_schedule_service import load_schedule_data
 
 logger = logging.getLogger(__name__)
 MAX_FEED_BYTES = 10 * 1024 * 1024
@@ -135,20 +134,12 @@ def _epoch(value: int | None) -> datetime | None:
         return None
 
 
-def _reference_ids() -> tuple[set[str], dict[str, str], set[str]]:
-    schedule = load_schedule_data()
-    if schedule is None:
-        raise RealtimeFeedError("GTFS_STATIC_UNAVAILABLE")
-    trips = {trip.trip_id: trip.route_id for trip in schedule.trips}
-    return set(schedule.route_labels), trips, set(schedule.stop_names)
-
-
 def parse_vehicle_positions(
     payload: bytes,
     *,
-    routes: set[str],
-    trips: dict[str, str],
-    stops: set[str],
+    routes: set[str] | None = None,
+    trips: dict[str, str] | None = None,
+    stops: set[str] | None = None,
     now_epoch: int | None = None,
     max_age_seconds: int = GTFS_RT_MAX_STALENESS_SECONDS,
 ) -> dict:
@@ -164,6 +155,7 @@ def parse_vehicle_positions(
     if feed.header.HasField("incrementality") and feed.header.incrementality != gtfs_realtime_pb2.FeedHeader.FULL_DATASET:
         raise RealtimeFeedError("DIFFERENTIAL_FEED_UNSUPPORTED")
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
+    routes, trips, stops = routes or set(), trips or {}, stops or set()
     feed_timestamp = int(feed.header.timestamp) if feed.header.HasField("timestamp") else None
     if feed_timestamp is not None and feed_timestamp > now_epoch + MAX_FUTURE_SKEW_SECONDS:
         raise RealtimeFeedError("FEED_TIMESTAMP_IN_FUTURE")
@@ -193,17 +185,17 @@ def parse_vehicle_positions(
                 continue
             trip_id = vehicle.trip.trip_id.strip() if vehicle.HasField("trip") and vehicle.trip.trip_id else None
             route_id = vehicle.trip.route_id.strip() if vehicle.HasField("trip") and vehicle.trip.route_id else None
-            if trip_id:
+            if trip_id and trips:
                 if trip_id not in trips:
                     raise ValueError("trip is not in static GTFS")
                 mapped_route = trips[trip_id]
                 if route_id and route_id != mapped_route:
                     raise ValueError("trip and route disagree")
                 route_id = mapped_route
-            if route_id and route_id not in routes:
+            if route_id and routes and route_id not in routes:
                 raise ValueError("route is not in static GTFS")
             stop_id = vehicle.stop_id if vehicle.HasField("stop_id") and vehicle.stop_id else None
-            if stop_id and stop_id not in stops:
+            if stop_id and stops and stop_id not in stops:
                 raise ValueError("stop is not in static GTFS")
             current_status = None
             if vehicle.HasField("current_status"):
@@ -240,7 +232,8 @@ def _build_request() -> urllib.request.Request:
     loopback_http = parsed_url.scheme == "http" and parsed_url.hostname in {"127.0.0.1", "localhost", "::1"}
     if parsed_url.scheme != "https" and not loopback_http:
         raise RealtimeFeedError("HTTPS_REQUIRED")
-    headers = {"Accept": "application/x-protobuf, application/octet-stream"}
+    # Transport Stack's feed endpoint returns 406 when an Accept header is sent.
+    headers = {}
     if GTFS_RT_API_KEY:
         if GTFS_RT_AUTH_MODE == "header":
             headers[GTFS_RT_AUTH_HEADER] = f"Bearer {GTFS_RT_API_KEY}" if GTFS_RT_AUTH_HEADER.lower() == "authorization" else GTFS_RT_API_KEY
@@ -262,9 +255,8 @@ def poll_once(*, now_epoch: int | None = None) -> dict:
         opener = urllib.request.build_opener(_NoRedirectHandler)
         with opener.open(request, timeout=GTFS_RT_TIMEOUT_SECONDS) as response:
             payload = response.read(MAX_FEED_BYTES + 1)
-        references = _reference_ids()
         parsed = parse_vehicle_positions(
-            payload, routes=references[0], trips=references[1], stops=references[2], now_epoch=attempt
+            payload, now_epoch=attempt
         )
         feed_timestamp = parsed["feed_timestamp"] if parsed["feed_timestamp"] is not None else attempt
         completed = int(time.time()) if now_epoch is None else now_epoch

@@ -63,6 +63,12 @@ def live_vehicles() -> VehicleListResponse:
     )
 
 
+@vehicles_router.get("/buses/live", response_model=VehicleListResponse)
+def live_buses_compat() -> VehicleListResponse:
+    """Frontend-friendly alias for the Delhi live positions feed."""
+    return live_vehicles()
+
+
 @vehicles_router.get("/route/{route_id}", response_model=VehicleListResponse)
 def route_vehicles(route_id: str) -> VehicleListResponse:
     try:

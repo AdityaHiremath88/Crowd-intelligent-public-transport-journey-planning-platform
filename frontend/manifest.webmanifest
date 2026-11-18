@@ -1,0 +1,14 @@
+{
+  "name": "Yuktix · Delhi Transit",
+  "short_name": "Yuktix",
+  "description": "Historical bus-stop insights and community crowd reports for Delhi riders.",
+  "start_url": "/#home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fff8f3",
+  "theme_color": "#fff8f3",
+  "icons": [
+    { "src": "/yuktix-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
