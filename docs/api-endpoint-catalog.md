@@ -144,7 +144,7 @@ Purpose: report GTFS-RT adapter configuration, last poll/ingestion, feed timesta
 
 ### 25. `GET /api/v1/vehicles/live`
 
-Purpose: list fresh, validated GTFS-RT VehiclePositions. Response `VehicleListResponse`: status, generated and last-success timestamps, vehicles array. Each item contains `vehicle_id`, optional matched trip/route/stop, lat/lon, optional bearing/speed/status, position/feed timestamps, freshness seconds, `status=LIVE_OBSERVED`, and source attribution. With no authorized feed/current static GTFS, returns HTTP 200 with `status=UNAVAILABLE` and an empty array. Invalid/stale positions are not returned as live. Publication still depends on upstream terms.
+Purpose: list validated provider GTFS-RT VehiclePositions. Static GTFS is not required to show the provider position; exact route match is reported only when validated static GTFS confirms the route ID. Response includes provider IDs, coordinates, timestamps, freshness and source. No configured key returns `NOT_CONFIGURED` and an empty list. After a failed poll, the last valid snapshot is retained and positions are marked `STALE_CACHED`; invalid or empty feeds do not erase it. Publication still depends on upstream terms.
 
 ### 26. `GET /api/v1/vehicles/{vehicle_id}`
 
@@ -163,10 +163,10 @@ Purpose: explicit ETA boundary. GTFS VehiclePositions alone does not provide a v
 The API uses HMACs of the opaque client token and network source for duplicate/rate controls; raw client tokens and IPs are not stored. Defaults: 10 submissions per client per rolling hour, 100 per network per rolling hour, report lifetime at most 1,200 seconds after observation, and presence lifetime 600 seconds. Expiry runs on reads/writes and in a 60-second background cleanup loop. A persistent random HMAC key is generated in an ignored sidecar next to the community SQLite file unless `CROWDWISE_REPORT_HMAC_SECRET` is configured. Keep that sidecar and SQLite on a protected persistent volume; do not expose them publicly. Rate limits deter basic abuse but do not prove personhood or replace authentication.
 
 
-### 29. POST /api/v1/stops/nearby 
+### 29. `POST /api/v1/stops/nearby` 
 
 Purpose: find the nearest validated static GTFS stop to a user-submitted one-time latitude/longitude. Request JSON contains latitude and longitude; coordinates are not placed in the URL or stored. Response includes the matched stop and distance. Returns 503 if no validated GTFS stop data is loaded and 404 if no stop lies within 25 km. Browser location is requested only after explicit user action.
 
-### 30. GET /api/v1/vehicles/buses/live 
+### 30. `GET /api/v1/vehicles/buses/live` 
 
-Compatibility alias for GET /api/v1/vehicles/live; response semantics and freshness fields are identical.
+Compatibility alias for GET /api/v1/vehicles/live; response semantics and freshness fields are identical.
