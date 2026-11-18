@@ -1,0 +1,10 @@
+.venv/
+frontend/
+.git/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.env
+datasets/
+outputs/
+tests/
