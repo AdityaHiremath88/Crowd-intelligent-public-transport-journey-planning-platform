@@ -44,6 +44,8 @@ Keep raw and processed datasets separate. The real ETM files are private/local a
 datasets/etm/raw/October-Delhi.csv
 datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip  # only after authorized acquisition
 datasets/processed/crowdwise.duckdb
+datasets/shareable/yuktix-october-delhi-clean-data.zip  # cleaned derived Parquet bundle
+datasets/shareable/yuktix-october-delhi-known-vehicle-data.zip  # subset for exploratory vehicle grouping
 datasets/community/crowdwise_signals.sqlite3  # generated, private, short-lived signal store
 datasets/community/crowdwise_signals.sqlite3.hmac-key  # generated persistent privacy/rate-limit key
 outputs/etm_data_quality.json
@@ -71,6 +73,8 @@ python -m scripts.process_gtfs --zip datasets/gtfs/raw/delhi_buses_static_gtfs_v
 ```
 
 The ETM pipeline hashes the source, records version and row metadata, does not automatically deduplicate, and builds stop, route, service, daily and hourly aggregates. The GTFS importer validates core file relationships and supported optional-file constraints. Review the JSON reports before enabling downstream use.
+
+The two checked-in files under `datasets/shareable/` are derived data bundles for teammate use. The original raw ticket archive and local DuckDB stay out of Git. Use the full bundle for route/time activity; the vehicle-known subset intentionally drops rows without a vehicle number and must not replace the full data for route-level analysis.
 
 Run reproducible analysis/diagnostics and performance workloads:
 

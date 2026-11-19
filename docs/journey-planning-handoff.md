@@ -27,10 +27,12 @@ The exact route-label comparison found 1,944 of 2,259 ETM route labels matching 
 
 ## Full-data and vehicle-known exports
 
-Two local data bundles were generated under the Codex task's `outputs/` folder; they are not committed to Git because the repository ignores local/private datasets and the file-specific data terms have not been confirmed.
+Two cleaned bundles are checked into `datasets/shareable/` on the contribution branch. They contain derived Parquet files and reports, not the original CSV/ZIP or the local DuckDB database.
 
-- Full cleaned data: all 2,559,899 rows, with route, stop-label, daily, and hourly aggregates. Use this for route/time ticket activity, including rows whose vehicle number is null.
-- Vehicle-known subset: 1,317,732 rows retained (51.48%); 1,242,167 rows with null vehicle number omitted from this subset. It includes an export-only synthetic row ordinal and vehicle/route/date/hour aggregates. It is useful for exploratory grouping, not trip reconstruction.
+- `datasets/shareable/yuktix-october-delhi-clean-data.zip`: all 2,559,899 rows, with route, stop-label, daily, and hourly aggregates. Use this for route/time ticket activity, including rows whose vehicle number is null.
+- `datasets/shareable/yuktix-october-delhi-known-vehicle-data.zip`: 1,317,732 rows retained (51.48%); 1,242,167 rows with null vehicle number omitted from this subset. It includes an export-only synthetic row ordinal and vehicle/route/date/hour aggregates. It is useful for exploratory grouping, not trip reconstruction.
+
+The original raw files and local DuckDB remain Git-ignored. The repository's data-source notes document the source and the limits of the available provenance/terms.
 
 The repeatable subset exporter is `scripts/export_vehicle_known_etm.py`. Example:
 
