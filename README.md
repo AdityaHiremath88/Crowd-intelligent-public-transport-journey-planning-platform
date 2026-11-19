@@ -56,6 +56,14 @@ Rebuild ETM tables and report:
 python -m scripts.process_etm --csv datasets/etm/raw/October-Delhi.csv --database datasets/processed/crowdwise.duckdb
 ```
 
+To export the subset whose vehicle number is present (without changing the full processed dataset):
+
+```powershell
+python -m scripts.export_vehicle_known_etm --output-dir work/vehicle-known-export --zip
+```
+
+The export includes an artificial row ordinal only for referencing rows inside that artifact; it is not a ticket or trip identifier. Use the full ETM dataset for route-by-time activity so rows with missing vehicle numbers are not needlessly discarded. See the [journey-planning handoff](docs/journey-planning-handoff.md).
+
 When an authorized feed is available, validate and load it:
 
 ```powershell
