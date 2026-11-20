@@ -76,6 +76,22 @@ The ETM pipeline hashes the source, records version and row metadata, does not a
 
 The two checked-in files under `datasets/shareable/` are derived data bundles for teammate use. The original raw ticket archive and local DuckDB stay out of Git. Use the full bundle for route/time activity; the vehicle-known subset intentionally drops rows without a vehicle number and must not replace the full data for route-level analysis.
 
+## Backend v2 rebuild
+
+The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The first v2 contract, health/readiness API, and independent GTFS importer are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
+
+Import the local static GTFS feed into the v2 database:
+
+```powershell
+python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
+```
+
+Then start the v2 health/readiness API:
+
+```powershell
+python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
+```
+
 Run reproducible analysis/diagnostics and performance workloads:
 
 ```powershell
