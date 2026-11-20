@@ -78,7 +78,7 @@ The two checked-in files under `datasets/shareable/` are derived data bundles fo
 
 ## Backend v2 rebuild
 
-The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The first v2 contract, health/readiness API, and independent GTFS importer are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
+The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The v2 contract, health/readiness, GTFS stop search, scheduled journey search, and route-by-time historical ticket-activity API are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
 
 Import the local static GTFS feed into the v2 database:
 
@@ -86,7 +86,13 @@ Import the local static GTFS feed into the v2 database:
 python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
 ```
 
-Then start the v2 health/readiness API:
+Import the full cleaned ETM route/time activity bundle into the same v2 database:
+
+```powershell
+python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
+```
+
+Then start the v2 API:
 
 ```powershell
 python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001

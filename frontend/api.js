@@ -26,7 +26,18 @@ async function request(path, options = {}) {
 export const api = {
   base: API_BASE,
   async health() { return request('/health') },
-  async capabilities() { return request('/api/v1/system/capabilities') },
+  async capabilities() { return request('/api/v2/capabilities') },
+  async searchJourneyStops(query, limit = 8) {
+    const key = query.trim().toLowerCase()
+    if (key.length < 2) return []
+    const result = await request(`/api/v2/stops?q=${encodeURIComponent(query)}&limit=${limit}`)
+    return (result.items || []).map(stop => ({
+      id: stop.stop_id,
+      stop_name: stop.stop_name,
+      coordinates: stop.latitude == null || stop.longitude == null ? null : { latitude: stop.latitude, longitude: stop.longitude },
+      coordinate_source: stop.coordinate_source,
+    }))
+  },
   async searchStops(query, limit = 8) {
     const key = query.trim().toLowerCase()
     if (key.length < 2) return []
@@ -44,11 +55,17 @@ export const api = {
     return request('/api/v1/reports/crowd', { method: 'POST', headers: { 'X-CrowdWise-Client': clientToken }, body: JSON.stringify(body) })
   },
   async journeySearch(body) { return request('/api/v1/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },
+  async journeySearchV2(body) { return request('/api/v2/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },
   async overview() { return request('/api/v1/analytics/overview') },
   async trends() { return request('/api/v1/analytics/trends?granularity=day') },
   async corridors() { return request('/api/v1/analytics/corridors?limit=8') },
-  async routeActivity(routeLabel, targetDatetime) {
-    const params = new URLSearchParams({ route_label: routeLabel, target_datetime: targetDatetime })
-    return request(`/api/v1/analytics/route-activity?${params}`)
+  async routeActivity(routeId, targetDatetime) {
+    const localTime = String(targetDatetime).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):/)
+    if (!localTime) throw Object.assign(new Error('The scheduled route time is invalid.'), { code: 'INVALID_ROUTE_TIME' })
+    const params = new URLSearchParams({
+      target_date: localTime[1],
+      hour: String(Number(localTime[2])),
+    })
+    return request(`/api/v2/routes/${encodeURIComponent(routeId)}/activity?${params}`)
   }
 }

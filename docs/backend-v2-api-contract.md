@@ -1,24 +1,26 @@
 # Yuktix backend v2: scope and API contract
 
-This is the new backend contract being developed alongside the existing service. The v2 package uses an isolated DuckDB path and does not replace the current API until the new journey flow is implemented and reviewed. Static schedule data and ticket activity are distinct evidence types; historical ticket activity is never an occupancy or live-crowd value.
+The v2 package runs alongside the existing service until the rebuilt journey flow is implemented and reviewed. Static schedules and ticket activity are distinct evidence types. Historical ticket activity is never occupancy or live crowding.
 
 ## Phase 1 boundaries
 
 Included: static GTFS ingestion and validation, canonical GTFS stop lookup, scheduled bus journey search, route-by-time historical ticket-activity profiles, source/coverage metadata, and operator-readable aggregates.
 
-Excluded for now: authentication, native app, in-app live map, real-time vehicle tracking, and physical crowd categories. GTFS times are scheduled values. GTFS stops/coordinates are publisher-listed and are not field-verified.
+Excluded for now: authentication, native app, in-app live map, real-time vehicle tracking, and physical crowd categories. GTFS stop coordinates are publisher-listed, not independently field-verified. GTFS times are schedules, not live arrivals.
 
-## Implemented foundation endpoints
+## Implemented endpoints
 
 ### `GET /api/v2/health`
 
-Liveness only. Returns `status`, `service`, and `generated_at`. It remains successful if no data has been imported.
+Liveness only. Returns `status`, `service`, and `generated_at`, even if no data has been imported.
+
+### `GET /api/v2/capabilities`
+
+Returns schedule, canonical stop-search, and historical route-activity availability flags, plus explicit `false` values for physical crowd estimates and live vehicle tracking. It remains a successful response when the local database is absent, so clients can show what is and is not ready.
 
 ### `GET /api/v2/ready`
 
 Readiness for the imported GTFS schedule. Returns source filename/hash, import time, service-date window, imported row counts, and validation issues. Returns HTTP 503 with a structured error if the database is absent or the import is not usable for scheduled routing.
-
-## Planned journey and stop endpoints
 
 ### `GET /api/v2/stops?q={text}&limit={n}&offset={n}`
 
@@ -38,25 +40,30 @@ Request:
 }
 ```
 
-Response includes feasible scheduled options and their legs, route/trip IDs, boarding/alighting stop IDs, scheduled departure/arrival, duration, transfers, wait, source, and generation time. It also includes `crowd_data_available=false`, `walking_connections_available=false`, and a `ranking_note` describing which criteria actually affected ranking. Until validated crowd data exists, `comfort` must not be represented as crowd-optimized.
+Searches active GTFS service for scheduled bus connections, including bounded transfers and after-midnight GTFS service times. Returns itinerary legs and GTFS trip/route/stop IDs, scheduled times, duration, transfers, wait, and score components. `crowd_data_available=false` and `walking_connections_available=false`. Until validated crowd observations exist, `comfort` cannot mean less crowded; ranking currently uses scheduled time and transfer count only.
 
-### `GET /api/v2/routes/{route_id}/activity?date={YYYY-MM-DD}&hour={0..23}`
+### `GET /api/v2/routes/{route_id}/activity?target_date={YYYY-MM-DD}&hour={0..23}`
 
-Returns historical ticket-activity summary for comparable weekday/time observations: separate represented passenger-ticket volume and transaction count, history dates, comparable-day count, metric basis, and limitations. Status is `available`, `insufficient_history`, or `unavailable`; missing observations are not zero. The UI calls this *historical ticket activity*, never crowding.
+Returns the full cleaned October 2026 ETM history for a matching route-label candidate, target weekday, and transaction hour before the target date. The response keeps `average_passenger_volume` and `average_transaction_count` separate and includes each comparable date, `comparable_day_count`, source, timestamp basis, route-match qualification, and limitations. `status=available` requires at least 3 comparable dates. These are historical ticket-activity values, not onboard load, crowding, stop arrivals, or live data. An exact GTFS `route_short_name` match is only a candidate, not a reviewed route/direction crosswalk. If history is missing or insufficient, values are null rather than zero.
 
-## Error and data-status behavior
+## Planned endpoints
+
+Future additions: a machine-readable capabilities endpoint and operator summaries of route/time history that do not imply physical crowd levels.
+
+## Errors and status behavior
 
 - `400/422`: malformed or out-of-range inputs.
 - `404`: unknown GTFS stop or route ID.
-- `503`: required imported data is missing, unusable, or the requested date is outside the loaded service window.
-- A successful HTTP response may still indicate unavailable evidence. Never translate that into zero demand or a crowd category.
+- `503`: required imported data is missing, unusable, or the requested journey date is outside the loaded service window.
+- A successful response can still say evidence is unavailable or insufficient. Never translate that into zero demand or a crowd category.
 
 ## Data and import commands
 
-The v2 importer writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. Raw datasets stay outside Git. Example:
+GTFS import writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. The ETM importer adds route/time aggregates from the full cleaned bundle to that same database. Raw source datasets remain outside Git.
 
 ```powershell
 python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
+python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
 ```
 
 The v2 API runs alongside the existing service on port 8001:
@@ -65,4 +72,4 @@ The v2 API runs alongside the existing service on port 8001:
 python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
 ```
 
-The service-date window in the import report is the schedule's advertised coverage, not proof that the feed is current or that a bus is operating in real time.
+The schedule's advertised service-date window is not proof that the feed is current or that a bus is operating in real time. October ticket records use `created_at` as a ticket transaction timestamp, not confirmed boarding time.

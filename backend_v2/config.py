@@ -23,6 +23,12 @@ GTFS_ZIP_PATH = _path_setting(
 REPORT_PATH = _path_setting(
     "YUKTIX_V2_GTFS_REPORT", "outputs/yuktix_v2_gtfs_import.json"
 )
+ETM_BUNDLE_PATH = _path_setting(
+    "YUKTIX_V2_ETM_BUNDLE", "datasets/shareable/yuktix-october-delhi-clean-data.zip"
+)
+ETM_IMPORT_REPORT_PATH = _path_setting(
+    "YUKTIX_V2_ETM_REPORT", "outputs/yuktix_v2_etm_import.json"
+)
 CORS_ORIGINS = [
     origin.strip()
     for origin in os.getenv(

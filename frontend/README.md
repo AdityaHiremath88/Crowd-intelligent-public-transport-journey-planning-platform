@@ -6,7 +6,7 @@ Mobile-first, responsive web app for Delhi bus riders. The current runnable fron
 
 Requirements: Python 3.11+ and Node.js 20+.
 
-1. Start the FastAPI backend from the repository root at `http://localhost:8000`.
+1. Start the rebuilt v2 FastAPI backend from the repository root at `http://localhost:8001` (import GTFS and the cleaned ETM bundle first; see the root README).
 2. From this folder, run `npm install` once, then `npm run dev`.
 3. Open `http://localhost:5173` (use `localhost`, which is allowed by the backend CORS defaults).
 
@@ -24,14 +24,16 @@ The API URL is set centrally in `config.example.js` as `window.YUKTIX_API_BASE`.
 
 ## Connected API paths
 
-- `GET /api/v1/system/capabilities`
-- `GET /api/v1/stops?q=...&limit=...`
+- `GET /api/v2/capabilities`
+- `GET /api/v2/stops?q=...&limit=...`
+- `POST /api/v2/journeys/search`
+- `GET /api/v2/routes/{route_id}/activity?target_date=YYYY-MM-DD&hour=0..23`
+- `GET /api/v1/stops?q=...&limit=...` for existing stop details and community features
 - `GET /api/v1/stops/{stop_id}`
 - `GET /api/v1/stops/{stop_id}/demand`
 - `GET /api/v1/crowding/stop/{stop_id}`
 - `GET /api/v1/reports/stop/{stop_id}`
 - `POST /api/v1/reports/crowd`
-- `POST /api/v1/journeys/search` only when capabilities enable schedule search
 - `GET /api/v1/analytics/overview`, `/trends`, and `/corridors`
 
 Most requests have a 12-second timeout; the first journey search after a backend restart gets up to 60 seconds to load the saved timetable into memory. Requests return explicit network, timeout, and API errors. Stop autocomplete is debounced and requires a returned stop ID; typing a name alone does not validate it.
@@ -40,7 +42,7 @@ Most requests have a 12-second timeout; the first journey search after a backend
 
 - The app does not show a live map or vehicle positions, even if a feed is available.
 - Stop search uses the loaded GTFS stop catalog and its publisher-provided coordinates. The UI displays coordinates to help distinguish duplicate stop names and explicitly says they are not field-verified.
-- October ticket activity is historical transaction data; it is not people waiting, bus occupancy, a crowd estimate, or a live condition.
+- October ticket activity is historical transaction data; it is not people waiting, bus occupancy, a crowd estimate, or a live condition. Journey options show route activity only when the matching weekday/hour has at least three prior observations, and show the dates used.
 - Crowd reports are voluntary subjective observations. The UI shows individual reports and backend aggregates under separate community labels.
 - Scheduled journey search uses the loaded static GTFS timetable. Times are marked approximate and are not live arrivals. No sample routes, fares, fabricated schedules, or live ETAs are shown.
 - Authentication is unavailable because the backend has no account service. The frontend does not collect or pretend to validate credentials.

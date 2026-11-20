@@ -25,6 +25,20 @@ The exact route-label comparison found 1,944 of 2,259 ETM route labels matching 
 - `GET /api/v1/analytics/route-activity` returns October historical ticket activity for an exact GTFS route label, target weekday, and transaction hour. It requires at least three comparable dates and includes source/time caveats.
 - Route activity is displayed separately from “Crowding unknown.” It must not silently affect the comfort ranking.
 
+## Backend v2 rebuild progress
+
+The isolated `backend_v2/` package now contains an independent GTFS importer, canonical stop search, scheduled journey search, and an ETM route-by-time activity importer/query. The current mobile-first frontend journey flow now calls v2 for readiness, origin/destination stop lookup, journey search, and route activity; the remaining older stop/community/operator screens continue to use their existing v1 endpoints during migration.
+
+Import the static feed and the full cleaned ETM bundle before running the rebuilt flow:
+
+```powershell
+python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
+python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
+python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
+```
+
+The route activity response groups October records by exact route-label candidate, matching weekday, and transaction hour. It requires at least three earlier comparable days, shows the dates, and leaves route matching explicitly unverified. This is the available historical signal; it is not an onboard crowd estimate and does not yet supply a crowd-optimized route ranking.
+
 ## Full-data and vehicle-known exports
 
 Two cleaned bundles are checked into `datasets/shareable/` on the contribution branch. They contain derived Parquet files and reports, not the original CSV/ZIP or the local DuckDB database.
