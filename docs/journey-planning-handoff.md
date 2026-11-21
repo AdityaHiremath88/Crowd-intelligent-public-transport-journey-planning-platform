@@ -39,6 +39,12 @@ python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
 
 The route activity response groups October records by exact route-label candidate, matching weekday, and transaction hour. It requires at least three earlier comparable days, shows the dates, and leaves route matching explicitly unverified. This is the available historical signal; it is not an onboard crowd estimate and does not yet supply a crowd-optimized route ranking.
 
+## Estimated fare support
+
+The supplied DTC route-stage workbook is imported by `backend_v2.import_fare_stages`. It contains route stop order and fare-stage markers, but no stage-to-stage fare matrix. Journey search therefore returns clearly labeled estimated ordinary and AC adult fares using approximately 2 km per stage interval and published fare bands. These values are planning estimates, not exact DTC tariffs. The response includes confidence and basis notes; it withholds a journey total if any bus leg cannot be matched to the workbook with adequate confidence. Vehicle type, concessions, and any fare exceptions are not inferred.
+
+The initial route/stop name crosswalk is incomplete and has not been manually reviewed. Do not display an unavailable estimate as zero, and do not treat an automated fuzzy name match as a verified stop identity. Expanding fare coverage requires reviewing the route/direction and stop crosswalk against the current operator timetable and tariff.
+
 ## Full-data and vehicle-known exports
 
 Two cleaned bundles are checked into `datasets/shareable/` on the contribution branch. They contain derived Parquet files and reports, not the original CSV/ZIP or the local DuckDB database.
@@ -65,6 +71,7 @@ Add `--overwrite` only when intentionally regenerating the named files in that o
 5. Build a route-by-time historical ticket-activity profile using the full ETM dataset. Compare each route to its own history by weekday/weekend and time window, and show observed-day coverage.
 6. Chronologically hold out later October dates to evaluate the route/time activity baseline. Do not claim crowd prediction from ticket totals alone.
 7. Keep “fastest” and “comfort” ranking honest: until validated crowd data exists, comfort cannot mean less crowded. If a lower-activity option is shown, label it as lower historical ticket activity, not greater comfort.
+8. Review and improve the DTC fare-stage to GTFS route/stop crosswalk; replace distance-band estimates with an official stage-to-stage fare matrix if one becomes available.
 
 ## Evidence needed for actual crowd categories
 

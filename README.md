@@ -78,7 +78,7 @@ The two checked-in files under `datasets/shareable/` are derived data bundles fo
 
 ## Backend v2 rebuild
 
-The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The v2 contract, health/readiness, GTFS stop search, scheduled journey search, and route-by-time historical ticket-activity API are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
+The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The v2 contract, health/readiness, GTFS stop search, scheduled journey search, route-by-time historical ticket-activity API, and estimated fare breakdown are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
 
 Import the local static GTFS feed into the v2 database:
 
@@ -91,6 +91,14 @@ Import the full cleaned ETM route/time activity bundle into the same v2 database
 ```powershell
 python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
 ```
+
+Import the DTC route-stage workbook for estimated standard-adult fares:
+
+```powershell
+python -m backend_v2.import_fare_stages --xlsx datasets/shareable/dtc-route-fare-stage-master.xlsx
+```
+
+These are estimates based on a Yuktix heuristic of approximately 2 km per fare-stage interval and the ordinary/AC fare bands published by [Delhi Tourism](https://delhitourism.gov.in/transport/city_bus.html). The workbook is listed by [DTC](https://dtc.delhi.gov.in/dtc/services-and-time-table), but does not include stage-to-stage prices or interval distances. The backend withholds estimates when route or stop matching is not confident; these are not official stage-to-stage fare lookups.
 
 Then start the v2 API:
 

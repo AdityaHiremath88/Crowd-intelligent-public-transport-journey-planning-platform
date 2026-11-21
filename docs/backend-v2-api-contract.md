@@ -42,13 +42,15 @@ Request:
 
 Searches active GTFS service for scheduled bus connections, including bounded transfers and after-midnight GTFS service times. Returns itinerary legs and GTFS trip/route/stop IDs, scheduled times, duration, transfers, wait, and score components. `crowd_data_available=false` and `walking_connections_available=false`. Until validated crowd observations exist, `comfort` cannot mean less crowded; ranking currently uses scheduled time and transfer count only.
 
+Each leg and journey option also includes a `fare_estimate`. When route direction and both stops map to the imported DTC stage list, the response provides separate ordinary and AC adult estimates using an assumed approximately 2 km per stage interval and published fare bands. The 2 km conversion is a Yuktix heuristic, not an official distance supplied by the workbook. Because the bus type is not known, both estimates are returned. These are estimates, not official stage-to-stage fare lookups; unmatched legs are `unavailable`, and a journey total is withheld if any leg is unmatched. Fare bands are sourced from [Delhi Tourism's city bus fare table](https://delhitourism.gov.in/transport/city_bus.html); the route-stage workbook is listed on [DTC Services and Time Table](https://dtc.delhi.gov.in/dtc/services-and-time-table).
+
 ### `GET /api/v2/routes/{route_id}/activity?target_date={YYYY-MM-DD}&hour={0..23}`
 
 Returns the full cleaned October 2026 ETM history for a matching route-label candidate, target weekday, and transaction hour before the target date. The response keeps `average_passenger_volume` and `average_transaction_count` separate and includes each comparable date, `comparable_day_count`, source, timestamp basis, route-match qualification, and limitations. `status=available` requires at least 3 comparable dates. These are historical ticket-activity values, not onboard load, crowding, stop arrivals, or live data. An exact GTFS `route_short_name` match is only a candidate, not a reviewed route/direction crosswalk. If history is missing or insufficient, values are null rather than zero.
 
-## Planned endpoints
+## Remaining backend additions
 
-Future additions: a machine-readable capabilities endpoint and operator summaries of route/time history that do not imply physical crowd levels.
+The capabilities endpoint is already available. Future backend work includes operator summaries of route/time ticket history that do not imply physical crowd levels, plus reviewed GTFS/DTC stop and route crosswalks and an official stage-to-stage fare table if one becomes available.
 
 ## Errors and status behavior
 
@@ -59,11 +61,17 @@ Future additions: a machine-readable capabilities endpoint and operator summarie
 
 ## Data and import commands
 
-GTFS import writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. The ETM importer adds route/time aggregates from the full cleaned bundle to that same database. Raw source datasets remain outside Git.
+GTFS import writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. The ETM importer adds route/time aggregates from the full cleaned bundle to that same database. The raw ticket and GTFS archives and local DuckDB remain outside Git. The user-provided route-stage workbook is included under `datasets/shareable/` so fare estimates can be reproduced.
 
 ```powershell
 python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
 python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
+```
+
+Import the DTC route-stage workbook:
+
+```powershell
+python -m backend_v2.import_fare_stages --xlsx datasets/shareable/dtc-route-fare-stage-master.xlsx
 ```
 
 The v2 API runs alongside the existing service on port 8001:

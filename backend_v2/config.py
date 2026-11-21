@@ -29,6 +29,12 @@ ETM_BUNDLE_PATH = _path_setting(
 ETM_IMPORT_REPORT_PATH = _path_setting(
     "YUKTIX_V2_ETM_REPORT", "outputs/yuktix_v2_etm_import.json"
 )
+FARE_STAGES_PATH = _path_setting(
+    "YUKTIX_V2_FARE_STAGES_XLSX", "datasets/shareable/dtc-route-fare-stage-master.xlsx"
+)
+FARE_STAGE_IMPORT_REPORT_PATH = _path_setting(
+    "YUKTIX_V2_FARE_STAGE_REPORT", "outputs/yuktix_v2_fare_stage_import.json"
+)
 CORS_ORIGINS = [
     origin.strip()
     for origin in os.getenv(

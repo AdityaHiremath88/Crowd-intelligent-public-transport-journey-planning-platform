@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend_v2.config import CORS_ORIGINS, DATABASE_PATH
+from backend_v2.fares import estimate_leg_fare, summarize_journey_fares
 from backend_v2.routing import active_services_for_date, rank_journeys, search_journeys
 from backend_v2.schedule import load_schedule_data
 from backend_v2.schemas import JourneyLeg, JourneyOption, JourneySearchRequest, JourneySearchResponse, JourneyStop, RouteActivityObservation, RouteActivityResponse, StopItem, StopSearchResponse
@@ -66,6 +67,7 @@ def capabilities() -> dict:
         "scheduled_journey_search": schedule_available,
         "gtfs_stop_search": schedule_available,
         "historical_route_activity": activity_available,
+        "estimated_fares": "dtc_fare_stage_stops" in tables,
         "physical_crowding_estimates": False,
         "live_vehicle_tracking": False,
     }
@@ -280,16 +282,27 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
     as_datetime = lambda seconds: day_start + timedelta(seconds=seconds)
     response_options = []
     for option in ranked:
-        legs = [JourneyLeg(
-            trip_id=leg.trip_id,
-            route_id=leg.route_id,
-            route_name=schedule.route_labels.get(leg.route_id, leg.route_id),
-            from_stop=JourneyStop(stop_id=leg.from_stop_id, stop_name=leg.from_stop_name),
-            to_stop=JourneyStop(stop_id=leg.to_stop_id, stop_name=leg.to_stop_name),
-            departure_datetime=as_datetime(leg.departure_seconds),
-            arrival_datetime=as_datetime(leg.arrival_seconds),
-            stop_sequence=list(leg.stop_sequence),
-        ) for leg in option.legs]
+        legs = []
+        fare_estimates = []
+        for leg in option.legs:
+            path_names = [schedule.stop_names.get(stop_id, stop_id) for stop_id in leg.stop_sequence]
+            fare_estimate = estimate_leg_fare(
+                route_short_name=schedule.route_short_names.get(leg.route_id, ""),
+                stop_names=path_names,
+                database_path=DATABASE_PATH,
+            )
+            fare_estimates.append(fare_estimate)
+            legs.append(JourneyLeg(
+                trip_id=leg.trip_id,
+                route_id=leg.route_id,
+                route_name=schedule.route_labels.get(leg.route_id, leg.route_id),
+                from_stop=JourneyStop(stop_id=leg.from_stop_id, stop_name=leg.from_stop_name),
+                to_stop=JourneyStop(stop_id=leg.to_stop_id, stop_name=leg.to_stop_name),
+                departure_datetime=as_datetime(leg.departure_seconds),
+                arrival_datetime=as_datetime(leg.arrival_seconds),
+                stop_sequence=list(leg.stop_sequence),
+                fare_estimate=fare_estimate,
+            ))
         waiting_seconds = max(0, option.departure_seconds - departure_seconds)
         for previous_leg, next_leg in zip(option.legs, option.legs[1:]):
             waiting_seconds += max(0, next_leg.departure_seconds - previous_leg.arrival_seconds)
@@ -301,6 +314,7 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
             waiting_seconds=waiting_seconds,
             transfers=option.transfers,
             transfer_stops=list(option.transfer_stops),
+            fare_estimate=summarize_journey_fares(fare_estimates),
             score=option.score,
             score_components=option.score_components,
         ))

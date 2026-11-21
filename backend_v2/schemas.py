@@ -41,6 +41,29 @@ class JourneyStop(BaseModel):
     stop_name: str
 
 
+class LegFareEstimate(BaseModel):
+    status: Literal["estimated", "unavailable"]
+    currency: Literal["INR"] = "INR"
+    estimated_distance_km: float | None
+    fare_stage_intervals: int | None
+    ordinary_adult_fare_inr: int | None
+    ac_adult_fare_inr: int | None
+    confidence: Literal["low", "medium", "unavailable"]
+    basis: str
+    note: str
+
+
+class JourneyFareSummary(BaseModel):
+    status: Literal["estimated", "partial", "unavailable"]
+    currency: Literal["INR"] = "INR"
+    estimated_leg_count: int
+    total_leg_count: int
+    ordinary_adult_total_inr: int | None
+    ac_adult_total_inr: int | None
+    estimated_distance_km: float | None
+    note: str
+
+
 class JourneyLeg(BaseModel):
     trip_id: str
     route_id: str
@@ -51,6 +74,7 @@ class JourneyLeg(BaseModel):
     arrival_datetime: datetime
     stop_sequence: list[str]
     eta_source: Literal["GTFS static schedule"] = "GTFS static schedule"
+    fare_estimate: LegFareEstimate
 
 
 class JourneyOption(BaseModel):
@@ -61,6 +85,7 @@ class JourneyOption(BaseModel):
     waiting_seconds: int
     transfers: int
     transfer_stops: list[str]
+    fare_estimate: JourneyFareSummary
     eta_source: Literal["GTFS static schedule"] = "GTFS static schedule"
     crowd_status: Literal["unavailable"] = "unavailable"
     score: float
