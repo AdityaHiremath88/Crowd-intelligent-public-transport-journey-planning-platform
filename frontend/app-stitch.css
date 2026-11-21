@@ -122,6 +122,59 @@
 .insight-route:last-child { border: 0; }
 .insight-route span:last-child { color: #806d70; font-weight: 500; text-align: right; }
 
+.crowd-insights-screen { padding-bottom: 112px; }
+.crowd-insights-heading { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 10px; margin: 4px 0 10px; }
+.crowd-insights-heading h1 { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; font: 600 18px "Plus Jakarta Sans",sans-serif; }
+.crowd-insights-heading h1 i { width: 7px; height: 7px; border-radius: 50%; background: var(--secondary); }
+.crowd-insights-heading .round-tool { width: 40px; height: 40px; margin: 0; }
+.crowd-mode-tabs { display: flex; gap: 5px; padding: 4px; margin: 3px 0 12px; border-radius: 999px; background: #f4ede6; }
+.crowd-mode-tabs button { flex: 1; min-height: 39px; display: flex; justify-content: center; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: transparent; color: #56433b; font: 600 11px Inter,sans-serif; }
+.crowd-mode-tabs button .material-symbols-outlined { font-size: 17px; }
+.crowd-mode-tabs button.active { background: #fff; color: #98421b; box-shadow: 0 2px 8px #3823330c; }
+.crowd-lookup { position: relative; display: flex; align-items: center; gap: 9px; min-height: 48px; padding: 0 11px 0 14px; border-radius: 17px; background: #fff; box-shadow: 0 6px 22px #3823330a; color: #98421b; }
+.crowd-lookup > .material-symbols-outlined { font-size: 19px; }
+.crowd-lookup input { flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: transparent; color: #352b29; font: 600 13px "Plus Jakarta Sans",sans-serif; }
+.crowd-lookup input::placeholder { color: #9b8b83; font-weight: 400; }
+.crowd-lookup > button { width: 33px; height: 33px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: #faf2eb; color: #98421b; }
+.crowd-route-suggestions { position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; right: 0; overflow: hidden; border: 1px solid #f0e1d8; border-radius: 15px; background: #fff; box-shadow: 0 10px 26px #38233318; }
+.crowd-route-suggestions button { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 11px 14px; border: 0; border-bottom: 1px solid #f4ede6; background: #fff; text-align: left; color: #352b29; }
+.crowd-route-suggestions button strong { font: 700 13px Inter,sans-serif; }
+.crowd-route-suggestions button span { color: #806d70; font: 400 10px Inter,sans-serif; }
+.crowd-route-card,.crowd-status-card,.crowd-trend-card { border-radius: 19px; background: #fff; box-shadow: 0 6px 22px #3823330a; }
+.crowd-route-card { display: flex; align-items: center; gap: 11px; min-height: 76px; padding: 12px; margin-top: 12px; }
+.crowd-route-icon { width: 42px; height: 42px; display: grid; place-items: center; flex: none; border-radius: 50%; background: #98421b; color: #fff; }
+.crowd-route-icon .material-symbols-outlined { font-size: 21px; }
+.crowd-route-copy { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.crowd-route-copy strong { overflow: hidden; color: #352b29; font: 700 14px "Plus Jakarta Sans",sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.crowd-route-copy small { overflow: hidden; color: #806d70; font: 400 10px Inter,sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.crowd-route-side { display: grid; gap: 4px; justify-items: end; flex: none; }
+.crowd-route-side small,.crowd-status-title small { color: #806d70; font: 600 8px Inter,sans-serif; letter-spacing: .7px; }
+.crowd-route-side b { color: #98421b; font: 700 11px Inter,sans-serif; }
+.crowd-status-card { padding: 15px; margin-top: 11px; background: linear-gradient(115deg,#fff 55%,#fff6f8); }
+.crowd-status-title { display: flex; align-items: center; gap: 9px; }
+.crowd-status-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #f4ede6; color: #98421b; }
+.crowd-status-title h2 { margin: 4px 0 0; color: #087f65; font: 700 18px "Plus Jakarta Sans",sans-serif; text-transform: capitalize; }
+.crowd-status-value { display: block; margin: 13px 0 12px 45px; color: #352b29; font: 700 21px "Plus Jakarta Sans",sans-serif; }
+.crowd-status-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 9px; border-radius: 11px; background: #faf2eb; }
+.crowd-status-footer > span,.crowd-status-footer button { display: flex; align-items: center; gap: 5px; color: #704b3a; font: 500 9px Inter,sans-serif; }
+.crowd-status-footer > span .material-symbols-outlined,.crowd-status-footer button .material-symbols-outlined { font-size: 14px; color: #98421b; }
+.crowd-status-footer button { border: 0; background: transparent; color: #98421b; font-weight: 600; }
+.crowd-trend-card { padding: 14px 13px 12px; margin-top: 11px; }
+.crowd-trend-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.crowd-trend-heading > div { display: flex; align-items: center; gap: 7px; }
+.crowd-trend-heading .material-symbols-outlined { color: #98421b; font-size: 17px; }
+.crowd-trend-heading h2 { margin: 0; color: #352b29; font: 600 13px "Plus Jakarta Sans",sans-serif; }
+.crowd-trend-heading > span { padding: 4px 7px; border-radius: 999px; background: #f4ede6; color: #704b3a; font: 600 8px Inter,sans-serif; }
+.crowd-trend-svg { display: block; width: 100%; height: 132px; margin-top: 9px; overflow: visible; }
+.crowd-trend-svg line { stroke: #eee7e0; stroke-dasharray: 3 3; stroke-width: 1; }
+.crowd-time-axis { display: flex; justify-content: space-between; margin: 1px 1px 0; color: #806d70; font: 500 8px Inter,sans-serif; }
+.crowd-chart-empty,.crowd-loading { display: flex; align-items: center; justify-content: center; min-height: 128px; padding: 14px; color: #806d70; text-align: center; font: 400 11px/1.5 Inter,sans-serif; }
+.crowd-loading { gap: 8px; min-height: 40px; padding: 6px; }
+.crowd-inline-error { margin: 9px 4px; color: #806d70; font: 400 10px/1.45 Inter,sans-serif; }
+.crowd-report-button { width: 100%; min-height: 48px; display: flex; justify-content: center; align-items: center; gap: 8px; margin: 15px 0 12px; border: 0; border-radius: 999px; background: #98421b; color: #fff; box-shadow: 0 12px 26px #98421b2b; font: 600 12px Inter,sans-serif; }
+.crowd-report-button .material-symbols-outlined { font-size: 17px; }
+.crowd-lookup .suggestions { top: calc(100% + 5px); }
+
 @media (min-width: 700px) {
   .hero-stitch { padding-inline: 26px; }
   .hero-stitch h1 { font-size: 34px; }
