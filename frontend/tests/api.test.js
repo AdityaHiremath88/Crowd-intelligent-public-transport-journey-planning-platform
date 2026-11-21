@@ -8,21 +8,35 @@ function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 }
 
-test('stop lookup uses the configured API base and encodes user input', async () => {
+test('GTFS stop lookup uses v2 fields and encodes user input', async () => {
   const previousFetch = globalThis.fetch
   let requestedUrl
   globalThis.fetch = async url => {
     requestedUrl = String(url)
-    return jsonResponse({ items: [{ id: 'stop-1', stop_name: 'A&B' }] })
+    return jsonResponse({ items: [{ stop_id: 'stop-1', stop_name: 'A&B', latitude: 28.6, longitude: 77.2, coordinate_source: 'gtfs_publisher_unverified' }] })
   }
   try {
     const result = await api.searchStops('North & West', 8)
-    assert.equal(result[0].id, 'stop-1')
-    assert.match(requestedUrl, /^https:\/\/api\.example\.test\/api\/v1\/stops\?q=North%20%26%20West&limit=8$/)
+    assert.deepEqual(result[0], { id: 'stop-1', stop_name: 'A&B', coordinates: { latitude: 28.6, longitude: 77.2 }, coordinate_source: 'gtfs_publisher_unverified' })
+    assert.equal(requestedUrl, 'https://api.example.test/api/v2/stops?q=North%20%26%20West&limit=8')
   } finally { globalThis.fetch = previousFetch }
 })
 
-test('recent reports are read from the documented stop reports endpoint', async () => {
+test('route lookup reads the current v2 route contract', async () => {
+  const previousFetch = globalThis.fetch
+  let requestedUrl
+  globalThis.fetch = async url => {
+    requestedUrl = String(url)
+    return jsonResponse({ items: [{ route_id: 'route/1', route_name: '534DOWN', scheduled_trip_count: 32 }] })
+  }
+  try {
+    const result = await api.searchRoutes('534', 4)
+    assert.equal(result[0].route_id, 'route/1')
+    assert.equal(requestedUrl, 'https://api.example.test/api/v2/routes?q=534&limit=4')
+  } finally { globalThis.fetch = previousFetch }
+})
+
+test('stop reports are read from the v2 endpoint with encoded stop IDs', async () => {
   const previousFetch = globalThis.fetch
   let requestedUrl
   globalThis.fetch = async url => {
@@ -32,11 +46,11 @@ test('recent reports are read from the documented stop reports endpoint', async 
   try {
     const result = await api.reportsAtStop('stop/with space')
     assert.equal(result.status, 'UNAVAILABLE')
-    assert.equal(requestedUrl, 'https://api.example.test/api/v1/reports/stop/stop%2Fwith%20space')
+    assert.equal(requestedUrl, 'https://api.example.test/api/v2/reports/stop/stop%2Fwith%20space')
   } finally { globalThis.fetch = previousFetch }
 })
 
-test('report submission sends the API contract and client deduplication header', async () => {
+test('crowd report submission sends the v2 contract and deduplication header', async () => {
   const previousFetch = globalThis.fetch
   let call
   globalThis.fetch = async (url, options) => {
@@ -47,7 +61,7 @@ test('report submission sends the API contract and client deduplication header',
   try {
     const result = await api.submitReport(body, 'random-client-token')
     assert.equal(result.report_id, 'r-1')
-    assert.equal(call.url, 'https://api.example.test/api/v1/reports/crowd')
+    assert.equal(call.url, 'https://api.example.test/api/v2/reports/crowd')
     assert.equal(call.options.method, 'POST')
     assert.equal(call.options.headers['X-CrowdWise-Client'], 'random-client-token')
     assert.deepEqual(JSON.parse(call.options.body), body)
@@ -58,7 +72,7 @@ test('structured API errors preserve status and safe detail text', async () => {
   const previousFetch = globalThis.fetch
   globalThis.fetch = async () => jsonResponse({ detail: { code: 'SCHEDULE_UNAVAILABLE', message: 'No validated timetable is loaded.' } }, 503)
   try {
-    await assert.rejects(api.journeySearch({}), error => error.status === 503 && error.code === 'SCHEDULE_UNAVAILABLE' && error.message === 'No validated timetable is loaded.')
+    await assert.rejects(api.journeySearchV2({}), error => error.status === 503 && error.code === 'SCHEDULE_UNAVAILABLE' && error.message === 'No validated timetable is loaded.')
   } finally { globalThis.fetch = previousFetch }
 })
 

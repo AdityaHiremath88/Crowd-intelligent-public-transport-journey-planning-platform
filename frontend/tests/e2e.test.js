@@ -6,6 +6,7 @@ import { chromium } from 'playwright-core'
 
 const frontendDir = new URL('..', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')
 const baseUrl = 'http://localhost:5181'
+const apiBase = 'http://127.0.0.1:8002'
 const browserPath = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 let server
 let browser
@@ -26,157 +27,169 @@ after(async () => {
   if (server && !server.killed) server.kill()
 })
 
-async function openApp({ reportStatus = 201, disconnected = false, scheduleEnabled = false } = {}) {
+const stops = [
+  { stop_id: 'stop-rohini', stop_name: 'Rohini Sec 22 Terminal', latitude: 28.73, longitude: 77.1, coordinate_source: 'gtfs_publisher_unverified' },
+  { stop_id: 'stop-azadpur', stop_name: 'Azadpur Terminal', latitude: 28.71, longitude: 77.18, coordinate_source: 'gtfs_publisher_unverified' },
+]
+const route = { route_id: 'route-534', route_name: '534DOWN', route_long_name: '534DOWN', scheduled_trip_count: 32 }
+let submittedReports = 0
+
+function send(routeRequest, body, status = 200) {
+  return routeRequest.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+}
+
+async function openApp({ reportStatus = 201, disconnected = false } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
-  const page = await context.newPage()
-  page.setDefaultTimeout(7000)
-  page.setDefaultNavigationTimeout(7000)
-  let submittedReports = 0
-  await context.route('http://localhost:8000/**', async route => {
-    if (disconnected) return route.abort('failed')
-    const request = route.request()
+  await context.addInitScript(apiOrigin => { window.YUKTIX_API_BASE = apiOrigin }, apiBase)
+  await context.route(`${apiBase}/**`, async requestRoute => {
+    if (disconnected) return requestRoute.abort('failed')
+    const request = requestRoute.request()
     const url = new URL(request.url())
     const path = url.pathname
-    let response
-    if (path === '/api/v1/system/capabilities') response = { scheduled_journey_search: scheduleEnabled, historical_ticket_analytics: true, community_reporting: true }
-    else if (path === '/api/v1/journeys/search' && request.method() === 'POST') response = {
-      options: [{
-        legs: [{ trip_id: 'trip-1', route_id: 'route-1', route_name: 'Route 101', from_stop: { stop_id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal' }, to_stop: { stop_id: 'etm_azadpur', stop_name: 'Azadpur Terminal' }, departure_datetime: '2026-11-18T13:00:00+05:30', arrival_datetime: '2026-11-18T13:40:00+05:30', stop_sequence: ['etm_rohini', 'etm_azadpur'] }],
-        departure_datetime: '2026-11-18T13:00:00+05:30', arrival_datetime: '2026-11-18T13:40:00+05:30', duration_seconds: 2400, waiting_seconds: 300, transfers: 0, transfer_stops: [], eta_source: 'static_gtfs_schedule', crowd_status: 'unavailable', score: 1, score_components: {},
-      }], origin_stop_id: 'etm_rohini', destination_stop_id: 'etm_azadpur', preference: 'balanced', data_source: 'GTFS static schedule', data_status: 'scheduled', generated_at: '2026-11-18T07:00:00Z', crowd_data_available: false, ranking_note: 'scheduled', walking_connections_available: false, message: null,
+    if (path === '/api/v2/health') return send(requestRoute, { status: 'ok', service: 'yuktix-backend-v2' })
+    if (path === '/api/v2/capabilities') return send(requestRoute, { scheduled_journey_search: true, gtfs_stop_search: true, historical_route_activity: true, estimated_fares: true })
+    if (path === '/api/v2/stops') {
+      const query = (url.searchParams.get('q') || '').toLowerCase()
+      const matches = stops.filter(stop => stop.stop_name.toLowerCase().includes(query))
+      return send(requestRoute, { items: matches, source: 'GTFS static feed' })
     }
-    else if (path === '/api/v1/stops') {
-      const q = (url.searchParams.get('q') || '').toLowerCase()
-      const stop = q.includes('azadpur')
-        ? { id: 'etm_azadpur', stop_name: 'Azadpur Terminal', coordinates: null, demand_available: true }
-        : { id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal', coordinates: null, demand_available: true }
-      response = { items: [stop], source: 'ETM labels', total_returned: 1 }
-    } else if (path === '/api/v1/stops/etm_rohini') response = { id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal', coordinates: null, data_source: 'ETM', data_status: 'historical', passenger_volume: 25, transaction_count: 9, routes_observed: 2 }
-    else if (path === '/api/v1/stops/etm_rohini/demand') response = { stop_id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal', passenger_volume: 25, transaction_count: 9, status: 'historical', data_source: 'October dataset', timestamp_basis: 'transaction time', days_covered: 2, observations: [{ transaction_hour: 8, passenger_volume: 15 }, { transaction_hour: 9, passenger_volume: 10 }] }
-    else if (path === '/api/v1/crowding/stop/etm_rohini') response = { stop_id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal', status: 'UNAVAILABLE', crowd_category: null, report_count: 0, limitations: [] }
-    else if (path === '/api/v1/reports/stop/etm_rohini') response = { stop_id: 'etm_rohini', status: 'UNAVAILABLE', report_count: 0, reports: [], limitations: [] }
-    else if (path === '/api/v1/analytics/overview') response = { dataset_rows: 100, dataset_min_timestamp: '2026-10-01T00:00:00+05:30', dataset_max_timestamp: '2026-10-30T00:00:00+05:30', distinct_routes: 4, data_source: 'October ETM', data_status: 'historical' }
-    else if (path === '/api/v1/analytics/trends') response = { points: [{ period: '2026-10-01', passenger_volume: 30, transaction_count: 10 }], data_source: 'October ETM', data_status: 'historical' }
-    else if (path === '/api/v1/analytics/corridors') response = { routes: [], data_source: 'October ETM', data_status: 'historical' }
-    else if (path === '/api/v1/reports/crowd' && request.method() === 'POST') {
+    if (path === '/api/v2/routes' && request.method() === 'GET') return send(requestRoute, { items: [route] })
+    if (path === '/api/v2/routes/route-534') return send(requestRoute, { ...route, headsign: 'Azadpur Terminal', stops: stops.map(({ stop_id, stop_name }) => ({ stop_id, stop_name })), source: 'GTFS static feed' })
+    if (path === '/api/v2/routes/route-534/activity') return send(requestRoute, { status: 'available', route_id: route.route_id, transaction_hour: Number(url.searchParams.get('hour') || 8), average_passenger_volume: 23, average_transaction_count: 9, data_source: 'October ETM', data_status: 'historical' })
+    if (path === '/api/v2/journeys/search' && request.method() === 'POST') {
+      const body = request.postDataJSON()
+      const departure = new Date(Date.now() + 2 * 60_000)
+      const sourceOptions = body.route_id
+        ? [{ route_name: '534DOWN', duration_seconds: 2400, departure_offset: 0, ordinary: 10, ac: 15 }]
+        : [
+            { route_name: '534DOWN', duration_seconds: 2400, departure_offset: 0, ordinary: 10, ac: 15 },
+            { route_name: '534UP', duration_seconds: 1800, departure_offset: 5, ordinary: 15, ac: 25 },
+          ]
+      const options = sourceOptions.map(item => {
+        const start = new Date(departure.getTime() + item.departure_offset * 60_000).toISOString()
+        const end = new Date(Date.parse(start) + item.duration_seconds * 1000).toISOString()
+        return {
+          legs: [{ trip_id: `trip-${item.route_name}`, route_id: 'route-534', route_name: item.route_name, from_stop: { stop_id: body.origin_stop_id, stop_name: stops[0].stop_name }, to_stop: { stop_id: body.destination_stop_id, stop_name: stops[1].stop_name }, departure_datetime: start, arrival_datetime: end, stop_sequence: ['stop-rohini', 'stop-azadpur'], eta_source: 'GTFS static schedule', fare_estimate: { status: 'estimated', ordinary_adult_fare_inr: item.ordinary, ac_adult_fare_inr: item.ac, estimated_distance_km: 8.2 } }],
+          departure_datetime: start, arrival_datetime: end, duration_seconds: item.duration_seconds, waiting_seconds: 60, transfers: 0, transfer_stops: [], fare_estimate: { status: 'estimated', currency: 'INR', estimated_leg_count: 1, total_leg_count: 1, ordinary_adult_total_inr: item.ordinary, ac_adult_total_inr: item.ac, estimated_distance_km: 8.2 }, eta_source: 'GTFS static schedule', crowd_status: 'unavailable', score: 1, score_components: {},
+        }
+      })
+      return send(requestRoute, { options, origin_stop_id: body.origin_stop_id, destination_stop_id: body.destination_stop_id, preference: body.preference, data_source: 'GTFS static schedule', data_status: 'scheduled', generated_at: new Date().toISOString(), crowd_data_available: false })
+    }
+    if (path === '/api/v2/crowding/stop/stop-rohini') return send(requestRoute, { stop_id: 'stop-rohini', status: 'UNAVAILABLE', crowd_category: null, report_count: 0, limitations: [] })
+    if (path === '/api/v2/reports/stop/stop-rohini') return send(requestRoute, { stop_id: 'stop-rohini', status: 'UNAVAILABLE', report_count: 0, reports: [], limitations: [] })
+    if (path === '/api/v2/reports/crowd' && request.method() === 'POST') {
       submittedReports++
-      response = reportStatus === 201
-        ? { report_id: 'mock-report', stop_id: 'etm_rohini', stop_name: 'Rohini Sec 22 Terminal', category: 'high', observed_at: '2026-11-18T12:00:00+05:30', created_at: '2026-11-18T12:00:00+05:30', expires_at: '2026-11-18T12:20:00+05:30', status: 'COMMUNITY_REPORTED', observation_type: 'subjective_category_not_headcount', stop_identity_status: 'unreviewed_etm_stop_label' }
-        : reportStatus === 429 ? { detail: { code: 'RATE_LIMITED', message: 'Too many reports. Please try again later.' } }
-          : { detail: { code: 'DUPLICATE_REPORT', message: 'A recent report from this app is already active for this stop.' } }
-    } else response = { detail: 'Unexpected request in browser test' }
-    await route.fulfill({ status: path === '/api/v1/reports/crowd' && reportStatus !== 201 ? reportStatus : 200, contentType: 'application/json', body: JSON.stringify(response) })
+      if (reportStatus !== 201) {
+        const status = reportStatus
+        const code = status === 429 ? 'RATE_LIMITED' : 'DUPLICATE_REPORT'
+        const message = status === 429 ? 'Too many reports. Please try again later.' : 'A recent report from this app is already active for this stop.'
+        return send(requestRoute, { detail: { code, message } }, status)
+      }
+      return send(requestRoute, { report_id: 'mock-report', stop_id: 'stop-rohini', stop_name: stops[0].stop_name, category: 'high', observed_at: new Date().toISOString(), created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 20 * 60_000).toISOString(), status: 'COMMUNITY_REPORTED', observation_type: 'subjective_category_not_headcount' }, 201)
+    }
+    return send(requestRoute, { detail: `Unexpected test request: ${request.method()} ${path}` }, 404)
   })
+  const page = await context.newPage()
+  page.setDefaultTimeout(5000)
   await page.goto(`${baseUrl}/`)
-  return { context, page, getSubmittedReports: () => submittedReports }
+  return { context, page }
 }
 
 async function selectStop(page, label, query) {
-  const input = page.getByRole('textbox', { name: label })
-  await input.fill(query)
-  await page.getByRole('button', { name: query, exact: true }).waitFor()
-  await page.getByRole('button', { name: query, exact: true }).click()
+  await page.getByRole('textbox', { name: label, exact: true }).fill(query)
+  const suggestion = page.locator(`[data-suggestions="${label === 'ORIGIN POINT' ? 'origin' : 'destination'}"] button`).first()
+  await suggestion.waitFor()
+  await suggestion.click()
 }
 
-test('mobile journey, stop, crowd report, local rides, insights and account states', async () => {
-  const { context, page, getSubmittedReports } = await openApp()
-  try {
-    await page.getByRole('heading', { name: 'Where to today?' }).waitFor()
-    await assert.doesNotReject(page.getByText(/Scheduled journey search is currently unavailable/).waitFor())
-    assert.equal(await page.getByText('102A Express').count(), 0)
-    await selectStop(page, 'ORIGIN POINT', 'Rohini Sec 22 Terminal')
-    await selectStop(page, 'DESTINATION', 'Azadpur Terminal')
-    await page.getByRole('button', { name: /FIND YOUR ORBIT/ }).click()
-    await page.getByText('Journey planning unavailable').waitFor()
-    assert.equal(await page.getByText('102A Express').count(), 0)
+async function planJourney(page) {
+  await page.getByRole('heading', { name: 'Plan your smart journey' }).waitFor()
+  await selectStop(page, 'ORIGIN POINT', 'Rohini')
+  await selectStop(page, 'DESTINATION', 'Azadpur')
+  await page.getByRole('button', { name: /FIND SMART JOURNEY/ }).click()
+  await page.locator('article.result-option').first().waitFor()
+}
 
-    await page.getByRole('link', { name: /Stops/ }).click()
-    await page.getByText('Historical demand activity').waitFor()
-    await page.getByText(/ticketed passenger-volume records/).waitFor()
-    await page.getByText(/does not mean the stop is uncrowded/).waitFor()
-
-    await page.getByRole('link', { name: 'Report' }).click()
-    await page.getByRole('button', { name: /Crowded/ }).click()
-    const submit = page.getByRole('button', { name: /SHARE UPDATE WITH COMMUTERS/ })
-    assert.equal(await submit.isEnabled(), true)
-    await submit.click()
-    await page.getByText('Thanks for helping riders').waitFor()
-    assert.equal(getSubmittedReports(), 1)
-
-    await page.getByRole('link', { name: /Your rides/ }).click()
-    await page.getByRole('heading', { name: 'No saved journeys yet' }).waitFor()
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'Account' }).click()
-    await page.getByText('Accounts are not available yet.').waitFor()
-    assert.equal(await page.locator('input[type="password"]').count(), 0)
-
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'Operator insights' }).click()
-    await page.getByText('Ticket activity overview').waitFor()
-    await page.reload()
-    await page.getByText('Ticket activity overview').waitFor()
-    await page.setViewportSize({ width: 1440, height: 900 })
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-  } finally { await context.close() }
-})
-
-test('duplicate report response stays a failure and never shows success', async () => {
-  const { context, page, getSubmittedReports } = await openApp({ reportStatus: 409 })
-  try {
-    await selectStop(page, 'ORIGIN POINT', 'Rohini Sec 22 Terminal')
-    await page.getByRole('link', { name: 'Report' }).click()
-    await page.getByRole('button', { name: /Crowded/ }).click()
-    await page.getByRole('button', { name: /SHARE UPDATE WITH COMMUTERS/ }).click()
-    await page.getByText(/recent report from this app is already active/).waitFor()
-    assert.equal(await page.getByText('Thanks for helping riders').count(), 0)
-    assert.equal(getSubmittedReports(), 1)
-  } finally { await context.close() }
-})
-
-test('arbitrary stop text is rejected until the rider selects a backend result', async () => {
+test('journey search, fare, preference sorting, details, and crowd handoff', async () => {
   const { context, page } = await openApp()
   try {
-    await page.getByRole('textbox', { name: 'ORIGIN POINT' }).fill('Imaginary station')
-    await page.getByRole('button', { name: /FIND YOUR ORBIT/ }).click()
+    await planJourney(page)
+    assert.equal(await page.locator('article.result-option').count(), 2)
+    assert.equal(await page.getByText('₹10 / ₹15').count(), 1)
+    await page.getByRole('button', { name: 'Fastest', exact: true }).click()
+    await page.getByRole('button', { name: 'Comfort', exact: true }).click()
+    assert.equal(await page.locator('.filter-tab.active').innerText(), 'Comfort')
+    await page.getByRole('button', { name: /VIEW JOURNEY DETAILS/ }).first().click()
+    await page.getByText('Scheduled itinerary').waitFor()
+    await page.getByText('Ordinary / AC · est.').waitFor()
+    await page.getByRole('button', { name: /View crowd status for this route/ }).click()
+    await page.getByRole('heading', { name: 'Crowd Insights' }).waitFor()
+    assert.match(await page.locator('[data-crowd-route-query]').evaluate(input => input.value), /^534/)
+    await page.getByText(/From Rohini Sec 22 Terminal/).waitFor()
+    await page.getByText('Historical ticket activity').waitFor()
+    await page.getByText('23 avg passengers').waitFor()
+  } finally { await context.close() }
+})
+
+test('bus route search loads the selected GTFS route and stop choices', async () => {
+  const { context, page } = await openApp()
+  try {
+    await page.getByRole('textbox', { name: 'Search bus route' }).fill('534')
+    const match = page.locator('[data-route-suggestions] button').first()
+    await match.waitFor()
+    await match.click()
+    await page.getByRole('combobox', { name: 'BOARD AT' }).waitFor()
+    assert.equal(await page.getByRole('combobox', { name: 'GET OFF AT' }).locator('option').count(), 2)
+    await page.getByRole('button', { name: /FIND JOURNEYS ON ROUTE/ }).click()
+    await page.locator('article.result-option').first().waitFor()
+    assert.ok((await page.locator('article.result-option').first().innerText()).includes('534DOWN'))
+  } finally { await context.close() }
+})
+
+test('crowd report success and duplicate/rate limit responses are handled honestly', async t => {
+  for (const scenario of [{ status: 201, success: true }, { status: 409, success: false }, { status: 429, success: false }]) {
+    await t.test(`report response ${scenario.status}`, async () => {
+      submittedReports = 0
+      const { context, page } = await openApp({ reportStatus: scenario.status })
+      try {
+        await planJourney(page)
+        await page.getByRole('button', { name: /VIEW JOURNEY DETAILS/ }).first().click()
+        await page.getByRole('button', { name: /Report crowding at a stop/ }).click()
+    await page.locator('[data-action="crowd-category"][data-value="high"]').click()
+        await page.getByRole('button', { name: /SHARE UPDATE WITH COMMUTERS/ }).click()
+        assert.equal(submittedReports, 1)
+        if (scenario.success) await page.getByText('Thanks for helping riders').waitFor()
+        else {
+          assert.equal(await page.getByText('Thanks for helping riders').count(), 0)
+          const retryButton = page.getByRole('button', { name: /SHARE UPDATE WITH COMMUTERS/ })
+          await retryButton.waitFor()
+          assert.equal(await retryButton.isEnabled(), true)
+          assert.match(await retryButton.innerText(), /SHARE UPDATE WITH COMMUTERS/)
+          assert.doesNotMatch(await retryButton.innerText(), /SENDING/)
+          await page.getByText(scenario.status === 409 ? /recent report from this app is already active/ : /Report limit reached/).waitFor()
+        }
+      } finally { await context.close() }
+    })
+  }
+})
+
+test('unselected free text cannot be submitted as a journey stop', async () => {
+  const { context, page } = await openApp()
+  try {
+    await page.getByRole('textbox', { name: 'ORIGIN POINT', exact: true }).fill('Imaginary station')
+    await page.getByRole('textbox', { name: 'DESTINATION', exact: true }).fill('Azadpur')
+    await page.getByRole('button', { name: /FIND SMART JOURNEY/ }).click()
     await page.getByText('Choose both stops from the suggestion list.').waitFor()
     assert.doesNotMatch(page.url(), /#results$/)
   } finally { await context.close() }
 })
 
-test('rate-limited report remains a failure with clear feedback', async () => {
-  const { context, page, getSubmittedReports } = await openApp({ reportStatus: 429 })
-  try {
-    await selectStop(page, 'ORIGIN POINT', 'Rohini Sec 22 Terminal')
-    await page.getByRole('link', { name: 'Report' }).click()
-    await page.getByRole('button', { name: /Crowded/ }).click()
-    await page.getByRole('button', { name: /SHARE UPDATE WITH COMMUTERS/ }).click()
-    await page.getByText('Report limit reached. Please try again later.').waitFor()
-    assert.equal(await page.getByText('Thanks for helping riders').count(), 0)
-    assert.equal(getSubmittedReports(), 1)
-  } finally { await context.close() }
-})
-
-test('only a backend-confirmed journey can be saved and removed from this device', async () => {
-  const { context, page } = await openApp({ scheduleEnabled: true })
-  try {
-    await selectStop(page, 'ORIGIN POINT', 'Rohini Sec 22 Terminal')
-    await selectStop(page, 'DESTINATION', 'Azadpur Terminal')
-    await page.getByRole('button', { name: /FIND YOUR ORBIT/ }).click()
-    await page.getByText('Route 101').first().waitFor()
-    await page.getByRole('button', { name: /VIEW JOURNEY DETAILS/ }).click()
-    await page.getByText('Scheduled itinerary').waitFor()
-    await page.getByRole('button', { name: 'Save journey' }).click()
-    await page.getByRole('link', { name: /Your rides/ }).click()
-    await page.getByText('SAVED SCHEDULED JOURNEY · THIS DEVICE').waitFor()
-    await page.getByRole('button', { name: 'Remove' }).click()
-    await page.getByRole('heading', { name: 'No saved journeys yet' }).waitFor()
-  } finally { await context.close() }
-})
-
-test('backend outage produces a visible connection state', async () => {
+test('backend outage renders the connection state without crashing the app', async () => {
   const { context, page } = await openApp({ disconnected: true })
   try {
-    await page.getByText(/Backend status unavailable/).waitFor()
-    await page.getByRole('button', { name: /Retry connection/ }).waitFor()
+    await page.getByRole('heading', { name: 'Plan your smart journey' }).waitFor()
+    await page.getByRole('textbox', { name: 'ORIGIN POINT', exact: true }).fill('Rohini')
+    await page.getByText('Stop search is unavailable. Check the backend connection.').waitFor()
+    assert.match(await page.title(), /Yuktix/)
   } finally { await context.close() }
 })

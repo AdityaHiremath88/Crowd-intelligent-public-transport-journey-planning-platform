@@ -301,7 +301,7 @@ async function submitReport(){
   try{
     const result=await api.submitReport({stop_id:stop.id,category:state.reportCategory,observed_at:new Date().toISOString(),route_id:state.reportRoute||null,feedback_code:state.reportFeedback},getReportToken())
     state.reportSent=true;render();toast(`Report recorded · expires ${new Date(result.expires_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`)
-  }catch(error){if(error.status===409)toast('A recent report from this app is already active for this stop.');else if(error.status===429)toast('Report limit reached. Please try again later.');else toast(`Report not sent: ${error.message}`);if(btn)btn.disabled=false}
+  }catch(error){if(error.status===409)toast('A recent report from this app is already active for this stop.');else if(error.status===429)toast('Report limit reached. Please try again later.');else toast(`Report not sent: ${error.message}`);if(btn){btn.disabled=false;btn.innerHTML='SHARE UPDATE WITH COMMUTERS <span class="material-symbols-outlined">arrow_forward</span>'}}
 }
 async function openStop(){const stop=state.stop||state.origin;if(!stop?.id){toast('Select a stop from search first.');location.hash='#home';return}state.stop=stop;state.stopData=null;location.hash='#stop'}
 function saveJourney(){

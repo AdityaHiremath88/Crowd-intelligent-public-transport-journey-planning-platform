@@ -6,6 +6,8 @@ Yuktix is a mobile-first Delhi transit application backed by the CrowdWise FastA
 
 Start the backend as described below, then from `frontend/` run:
 
+For a clean Windows setup on another computer, follow the [GitHub setup guide](docs/github-setup-guide.md). The static GTFS archive is intentionally not committed and must be obtained separately for journey search.
+
 ```powershell
 npm install
 npm run dev
