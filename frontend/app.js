@@ -1,10 +1,10 @@
-import { api } from './api.js'
+import { api } from './api.js?v=route-search-2'
 
 const app = document.querySelector('#app')
 const toastNode = document.querySelector('#toast')
 const savedKey = 'yuktix.savedJourneys.v1'
 const tokenKey = 'yuktix.reportClient.v1'
-const state = { page: location.hash.slice(1) || 'home', origin: null, destination: null, stop: null, reportStop: null, reportRoute: null, preference: 'balanced', departure: new Date(Date.now() + 5 * 60000), reportCategory: null, reportFeedback: null, capabilities: null, capabilityError: null, results: null, routeActivity: {}, selectedJourney: null, stopData: null, stopLoading: false, reportSent: false, operatorData: null, stopError: null }
+const state = { page: location.hash.slice(1) || 'home', origin: null, destination: null, stop: null, reportStop: null, reportRoute: null, preference: 'balanced', departure: new Date(Date.now() + 5 * 60000), reportCategory: null, reportFeedback: null, capabilities: null, capabilityError: null, results: null, routeActivity: {}, selectedJourney: null, stopData: null, stopLoading: false, reportSent: false, operatorData: null, stopError: null, routeQuery: '', routeMatches: [], selectedRoute: null, routeStops: [], routeLoading: false, routeOriginId: '', routeDestinationId: '' }
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[char])
 let toastTimer
 function toast(message) { toastNode.textContent = message; toastNode.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastNode.classList.remove('show'), 3200) }
@@ -31,13 +31,16 @@ function autocomplete(field, label, value, hint = '') {
 function homePage() {
   const originName = state.origin?.stop_name || ''
   const destinationName = state.destination?.stop_name || ''
-  return `${brandHeader('Home Search')}<main class="screen"><section class="hero hero-stitch"><div class="hero-copy"><span class="grid-pill"><i></i>Scheduled Delhi buses</span><h1>Plan your<br><em>smart journey</em></h1><p>Compare bus routes, travel time and estimated fares.</p></div><div class="hero-art" aria-hidden="true"><span class="hero-gate"></span><span class="hero-bus material-symbols-outlined">directions_bus</span><i class="hero-orbit"></i></div></section>
+  const routeOptions = field => state.routeStops.map(stop => `<option value="${escapeHtml(stop.stop_id)}" ${stop.stop_id===(field==='origin'?state.routeOriginId:state.routeDestinationId)?'selected':''}>${escapeHtml(stop.stop_name)}</option>`).join('')
+  const routePanel = state.selectedRoute ? `<section class="selected-route-panel"><div class="selected-route-heading"><span class="route-icon material-symbols-outlined">directions_bus</span><span><b>Route ${escapeHtml(state.selectedRoute.route_name)}</b><small>${escapeHtml(state.selectedRoute.headsign || state.selectedRoute.route_long_name || 'GTFS scheduled route')}</small></span><button class="route-clear" type="button" data-action="clear-route" aria-label="Clear selected route">×</button></div>${state.routeLoading ? '<p class="route-loading">Loading scheduled stops…</p>' : state.routeStops.length ? `<label class="route-stop-label">BOARD AT<select data-route-stop="origin">${routeOptions('origin')}</select></label><label class="route-stop-label">GET OFF AT<select data-route-stop="destination">${routeOptions('destination')}</select></label><small class="route-pattern-note">${escapeHtml(state.selectedRoute.pattern_note || 'Stops shown from the static GTFS schedule.')}</small>` : '<p class="route-loading">Could not load the stops for this route.</p>'}</section>` : ''
+  return `${brandHeader('Home Search')}<main class="screen"><section class="hero hero-stitch"><div class="hero-copy"><span class="grid-pill"><i></i>Delhi bus journey planner</span><h1>Plan your<br><em>smart journey</em></h1><p>Find scheduled bus routes, compare travel times and view estimated fares.</p></div><div class="hero-art"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXKSKAja9l5zwO4pkmFSytWQcCl_rUAAVgLnzxanjiQS54YYGuShGvFt2y6rM0-F885zXOVfjz3EhV6APeQ1n6BKEEVnBMKhnsRH4hKksNuAPcNUTCZqq7lnzheAUASzfDJgNdlCdb85NSYO_JUiAEjIVdI7VJN7JStsHzjV--dByVapotcCmyknOp8c0Mzv7bNN7h41789p4m7_hlsljynPTkuKdPTiOQllf1NKa03lQ0a_Ze4NLg" alt="Delhi transit bus and monument"></div></section>
     <section class="search-card" aria-label="Plan your journey">${autocomplete('origin','ORIGIN POINT',originName,'Choose a stop from the static GTFS list')}
       <div class="swap-line"><span></span><button class="swap" data-action="swap" aria-label="Swap origin and destination"><span class="material-symbols-outlined">swap_vert</span></button></div>
       ${autocomplete('destination','DESTINATION',destinationName,'Choose a stop from the static GTFS list')}
       <div class="options"><label class="time-chip"><span class="material-symbols-outlined">schedule</span><span>Depart</span><input data-departure type="datetime-local" value="${new Date(state.departure.getTime()-state.departure.getTimezoneOffset()*60000).toISOString().slice(0,16)}" aria-label="Departure date and time"></label><button class="choice-chip ${state.preference==='balanced'?'active':''}" data-action="preference" data-value="balanced"><i></i>Balanced</button><button class="choice-chip ${state.preference==='fastest'?'active':''}" data-action="preference" data-value="fastest"><span class="material-symbols-outlined">bolt</span>Fastest</button><button class="choice-chip ${state.preference==='comfort'?'active':''}" data-action="preference" data-value="comfort"><span class="material-symbols-outlined">alt_route</span>Fewer changes</button></div>
-    </section><button class="cta" data-action="search"><span class="cta-label"><span class="material-symbols-outlined">search</span>FIND SMART JOURNEY</span><span class="cta-arrow"><span class="material-symbols-outlined">arrow_forward</span></span></button>
-    <section class="frequent-section"><div class="section-head"><h2>Journey planning</h2><button class="text-link" data-route="operator">Historical insights</button></div><div class="planning-status"><span class="planning-status-icon material-symbols-outlined">${state.capabilities?.scheduled_journey_search?'event_available':'info'}</span><span>${state.capabilityError?`Backend unavailable: ${escapeHtml(state.capabilityError)}`:state.capabilities?.scheduled_journey_search?'Static bus schedules are connected. Times are scheduled, not live.':'Schedule search is not connected. Stop search may still be available.'}</span></div><p class="subtle-note">Crowding is not estimated yet. Fare amounts, when available, are labeled estimates.</p>${state.capabilityError?'<button class="text-link" data-action="retry-capabilities">Retry connection</button>':''}</section>
+      <div class="route-search"><div class="route-divider"><span></span>OR SEARCH BY ROUTE<span></span></div><div class="route-search-input"><span class="material-symbols-outlined">directions_bus</span><input data-route-query value="${escapeHtml(state.routeQuery)}" placeholder="Bus number (e.g. 534, 102A)" autocomplete="off" aria-label="Search bus route"><button type="button" data-action="route-search" aria-label="Search route"><span class="material-symbols-outlined">arrow_forward</span></button><div class="route-suggestions" data-route-suggestions hidden></div></div>${routePanel}</div>
+    </section><button class="cta" data-action="search"><span class="cta-label"><span class="material-symbols-outlined">search</span>${state.selectedRoute?'FIND JOURNEYS ON ROUTE':'FIND SMART JOURNEY'}</span><span class="cta-arrow"><span class="material-symbols-outlined">arrow_forward</span></span></button>
+    <section class="frequent-section"><div class="section-head"><h2>Journey planning</h2><button class="text-link" data-route="operator">Historical insights</button></div><div class="planning-status"><span class="planning-status-icon material-symbols-outlined">${state.capabilities?.scheduled_journey_search?'event_available':'info'}</span><span>${state.capabilityError?`Backend unavailable: ${escapeHtml(state.capabilityError)}`:state.capabilities?.scheduled_journey_search?'Connected to Delhi’s static bus timetable. Times are scheduled, not live.':'Schedule search is not connected.'}</span></div><p class="subtle-note">Crowding data is unavailable. Fares are estimates when a route and its fare stages can be matched.</p>${state.capabilityError?'<button class="text-link" data-action="retry-capabilities">Retry connection</button>':''}</section>
     </main>${bottomNav()}`
 }
 function resultsPage() {
@@ -178,11 +181,28 @@ async function journeySearch(){
     if(dateField?.value)state.departure=new Date(dateField.value)
     if(Number.isNaN(state.departure.getTime())||state.departure<new Date(Date.now()-60000)){toast('Choose a valid departure time in the future.');return}
     if(state.capabilityError)state.results={data_status:'unavailable',message:`Backend status unavailable: ${state.capabilityError}`}
-    else if(state.capabilities?.scheduled_journey_search){try{state.results=await api.journeySearchV2({origin_stop_id:origin.id,destination_stop_id:destination.id,departure_datetime:state.departure.toISOString(),preference:state.preference,max_transfers:1})}catch(error){state.results={data_status:'unavailable',message:error.message};toast(`Journey search failed: ${error.message}`)}}else state.results={data_status:'unavailable',message:'A validated Delhi GTFS timetable is not currently connected.'}
+    else if(state.capabilities?.scheduled_journey_search){try{state.results=await api.journeySearchV2({origin_stop_id:origin.id,destination_stop_id:destination.id,departure_datetime:state.departure.toISOString(),preference:state.preference,max_transfers:state.selectedRoute?0:1,...(state.selectedRoute?{route_id:state.selectedRoute.route_id}:{})})}catch(error){state.results={data_status:'unavailable',message:error.message};toast(`Journey search failed: ${error.message}`)}}else state.results={data_status:'unavailable',message:'A validated Delhi GTFS timetable is not currently connected.'}
     location.hash='#results'
     if(state.results?.options?.length)void loadRouteActivities()
   }catch(error){state.results={data_status:'unavailable',message:`Stop search failed: ${error.message}`};toast(`Stop search failed: ${error.message}`);location.hash='#results'}
   finally{if(button)button.disabled=false}
+}
+async function searchRoutes(){
+  const input=document.querySelector('[data-route-query]'), query=(input?.value||state.routeQuery).trim()
+  if(!query){toast('Enter a bus route number or name.');return}
+  state.routeQuery=query
+  const box=document.querySelector('[data-route-suggestions]')
+  if(box){box.hidden=false;box.innerHTML='<div class="route-suggestion-message">Searching the GTFS route list…</div>'}
+  try{state.routeMatches=await api.searchRoutes(query);if(box){box.innerHTML=state.routeMatches.length?state.routeMatches.map(route=>`<button type="button" class="route-suggestion" data-action="select-route" data-route-id="${escapeHtml(route.route_id)}"><span class="route-number">${escapeHtml(route.route_name)}</span><span class="route-match-copy">${escapeHtml(route.route_long_name||'Delhi bus route')}<small>${Number(route.scheduled_trip_count).toLocaleString('en-IN')} scheduled trips</small></span></button>`).join(''):'<div class="route-suggestion-message">No matching routes in the static Delhi GTFS feed.</div>'}}
+  catch(error){if(box){box.hidden=false;box.innerHTML=`<div class="route-suggestion-message">Route search unavailable: ${escapeHtml(error.message)}</div>`}}
+}
+async function selectRoute(routeId){
+  const route=state.routeMatches.find(item=>item.route_id===routeId)
+  if(!route)return
+  state.selectedRoute={...route};state.routeStops=[];state.routeLoading=true;state.routeOriginId='';state.routeDestinationId='';render()
+  try{const detail=await api.route(routeId);state.selectedRoute={...route,...detail};state.routeStops=detail.stops||[];if(state.routeStops.length>1){state.routeOriginId=state.routeStops[0].stop_id;state.routeDestinationId=state.routeStops.at(-1).stop_id;state.origin={id:state.routeOriginId,stop_name:state.routeStops[0].stop_name};state.destination={id:state.routeDestinationId,stop_name:state.routeStops.at(-1).stop_name}}}
+  catch(error){state.routeStops=[];toast(`Could not load this route's stops: ${error.message}`)}
+  finally{state.routeLoading=false;state.routeMatches=[];render()}
 }
 function selectStop(field,stop){
   if(field==='origin')state.origin=stop
@@ -224,7 +244,7 @@ async function clickHandler(event){
     state.preference=value
     if(state.page==='results'&&state.capabilities?.scheduled_journey_search&&state.origin?.id&&state.destination?.id){
       state.journeyLoading=true;state.results=null;render()
-      try{state.results=await api.journeySearchV2({origin_stop_id:state.origin.id,destination_stop_id:state.destination.id,departure_datetime:state.departure.toISOString(),preference:value,max_transfers:1})}
+      try{state.results=await api.journeySearchV2({origin_stop_id:state.origin.id,destination_stop_id:state.destination.id,departure_datetime:state.departure.toISOString(),preference:value,max_transfers:state.selectedRoute?0:1,...(state.selectedRoute?{route_id:state.selectedRoute.route_id}:{})})}
       catch(error){state.results={data_status:'unavailable',message:error.message}}
       finally{state.journeyLoading=false;render()}
       if(state.results?.options?.length)void loadRouteActivities()
@@ -234,6 +254,9 @@ async function clickHandler(event){
   if(action==='retry-search')await journeySearch()
   if(action==='retry-capabilities'){state.capabilityError=null;await loadDefaults()}
   if(action==='choose-stop')selectStop(field,{id:stopId,stop_name:stopName})
+  if(action==='route-search')await searchRoutes()
+  if(action==='select-route')await selectRoute(node.dataset.routeId)
+  if(action==='clear-route'){state.selectedRoute=null;state.routeStops=[];state.routeOriginId='';state.routeDestinationId='';render()}
   if(action==='open-journey'){state.selectedJourney=state.results?.options?.[Number(node.dataset.index)]||null;if(state.selectedJourney)location.hash='#journey';else toast('This itinerary is not available. Search again.')}
   if(action==='open-stop')await openStop()
   if(action==='plan-from-stop'&&state.stop){state.origin=state.stop;state.destination=null;location.hash='#home'}
@@ -251,17 +274,27 @@ async function clickHandler(event){
 }
 app.addEventListener('click',clickHandler)
 app.addEventListener('input',event=>{
+  const routeInput=event.target.closest('[data-route-query]')
+  if(routeInput){state.routeQuery=routeInput.value;state.selectedRoute=null;state.routeStops=[];clearTimeout(routeInput._searchTimer);routeInput._searchTimer=setTimeout(()=>searchRoutes(),240);return}
   const input=event.target.closest('[data-stop-field]');if(!input)return
   const field=input.dataset.stopField
   input._searchVersion=(input._searchVersion||0)+1
   const selected=field==='origin'?state.origin:field==='destination'?state.destination:field==='stop'?state.stop:state.stop
   if(selected&&selected.stop_name.toLowerCase()!==input.value.trim().toLowerCase()){
+    state.selectedRoute=null;state.routeStops=[]
     if(field==='origin')state.origin=null
     else if(field==='destination')state.destination=null
     else if(field==='stop')state.stop=null
     else if(field==='report'){state.reportStop=null;state.stop=null}
   }
   clearTimeout(input._searchTimer);input._searchTimer=setTimeout(()=>showSuggestions(field,input.value),180)
+})
+app.addEventListener('change',event=>{
+  const select=event.target.closest('[data-route-stop]');if(!select)return
+  const field=select.dataset.routeStop, stop=state.routeStops.find(item=>item.stop_id===select.value);if(!stop)return
+  if(field==='origin'){state.routeOriginId=stop.stop_id;state.origin={id:stop.stop_id,stop_name:stop.stop_name}}
+  else {state.routeDestinationId=stop.stop_id;state.destination={id:stop.stop_id,stop_name:stop.stop_name}}
+  const input=document.querySelector(`[data-stop-field="${field}"]`);if(input)input.value=stop.stop_name
 })
 app.addEventListener('focusin',event=>{const input=event.target.closest('[data-stop-field]');if(input&&input.value.trim().length>1)showSuggestions(input.dataset.stopField,input.value)})
 app.addEventListener('submit',event=>{if(event.target.id==='auth-form')event.preventDefault()})

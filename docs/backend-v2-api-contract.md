@@ -26,6 +26,10 @@ Readiness for the imported GTFS schedule. Returns source filename/hash, import t
 
 Search canonical GTFS stops only. Each result returns `stop_id`, `stop_name`, optional coordinates, and `coordinate_source=gtfs_publisher_unverified`. IDs remain opaque to the client. No ETM stop label is silently treated as a GTFS ID.
 
+### `GET /api/v2/routes?q={text}&limit={n}` and `GET /api/v2/routes/{route_id}`
+
+Searches GTFS route numbers and names, with scheduled trip counts. Route detail returns one representative trip's ordered stops and headsign so riders can choose boarding and alighting stops. The route screen labels the list as a representative pattern because stop order can differ across trips.
+
 ### `POST /api/v2/journeys/search`
 
 Request:
@@ -36,13 +40,16 @@ Request:
   "destination_stop_id": "GTFS stop ID",
   "departure_datetime": "ISO-8601 datetime with offset",
   "preference": "fastest | balanced | comfort",
-  "max_transfers": 1
+  "max_transfers": 1,
+  "route_id": "optional GTFS route ID filter"
 }
 ```
 
 Searches active GTFS service for scheduled bus connections, including bounded transfers and after-midnight GTFS service times. Returns itinerary legs and GTFS trip/route/stop IDs, scheduled times, duration, transfers, wait, and score components. `crowd_data_available=false` and `walking_connections_available=false`. Until validated crowd observations exist, `comfort` cannot mean less crowded; ranking currently uses scheduled time and transfer count only.
 
-Each leg and journey option also includes a `fare_estimate`. When route direction and both stops map to the imported DTC stage list, the response provides separate ordinary and AC adult estimates using an assumed approximately 2 km per stage interval and published fare bands. The 2 km conversion is a Yuktix heuristic, not an official distance supplied by the workbook. Because the bus type is not known, both estimates are returned. These are estimates, not official stage-to-stage fare lookups; unmatched legs are `unavailable`, and a journey total is withheld if any leg is unmatched. Fare bands are sourced from [Delhi Tourism's city bus fare table](https://delhitourism.gov.in/transport/city_bus.html); the route-stage workbook is listed on [DTC Services and Time Table](https://dtc.delhi.gov.in/dtc/services-and-time-table).
+When `route_id` is provided, only journeys using that GTFS route are returned. Route-number search sets `max_transfers=0` and uses the selected route's representative stop pattern to show departures on that route.
+
+Each leg and journey option also includes a `fare_estimate`. When route direction and both stops map to the imported DTC stage list, the response provides separate ordinary and AC adult estimates using an assumed approximately 2 km per stage interval and published fare bands. The matcher allows close GTFS/workbook spelling variants and uses route stop order and path length among near matches; these estimates are marked low confidence. The 2 km conversion is a Yuktix heuristic, not an official distance supplied by the workbook. Because the bus type is not known, both estimates are returned. These are estimates, not official stage-to-stage fare lookups; unmatched legs are `unavailable`, and a journey total is withheld if any leg is unmatched. Fare bands are sourced from [Delhi Tourism's city bus fare table](https://delhitourism.gov.in/transport/city_bus.html); the route-stage workbook is listed on [DTC Services and Time Table](https://dtc.delhi.gov.in/dtc/services-and-time-table).
 
 ### `GET /api/v2/routes/{route_id}/activity?target_date={YYYY-MM-DD}&hour={0..23}`
 
@@ -74,10 +81,10 @@ Import the DTC route-stage workbook:
 python -m backend_v2.import_fare_stages --xlsx datasets/shareable/dtc-route-fare-stage-master.xlsx
 ```
 
-The v2 API runs alongside the existing service on port 8001:
+The v2 API runs alongside the existing service on port 8002:
 
 ```powershell
-python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
+python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8002
 ```
 
 The schedule's advertised service-date window is not proof that the feed is current or that a bus is operating in real time. October ticket records use `created_at` as a ticket transaction timestamp, not confirmed boarding time.

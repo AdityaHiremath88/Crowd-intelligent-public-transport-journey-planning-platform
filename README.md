@@ -78,7 +78,7 @@ The two checked-in files under `datasets/shareable/` are derived data bundles fo
 
 ## Backend v2 rebuild
 
-The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8001 while the current backend remains available on port 8000. The v2 contract, health/readiness, GTFS stop search, scheduled journey search, route-by-time historical ticket-activity API, and estimated fare breakdown are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
+The rebuild is being developed in `backend_v2/` beside the existing service. It uses its own DuckDB database and can run on port 8002 while the current backend remains available on port 8000. The v2 contract, health/readiness, GTFS stop and route search, scheduled journey search, route-by-time historical ticket-activity API, and estimated fare breakdown are documented in [the v2 API contract](docs/backend-v2-api-contract.md).
 
 Import the local static GTFS feed into the v2 database:
 
@@ -103,7 +103,7 @@ These are estimates based on a Yuktix heuristic of approximately 2 km per fare-s
 Then start the v2 API:
 
 ```powershell
-python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
+python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8002
 ```
 
 Run reproducible analysis/diagnostics and performance workloads:

@@ -62,12 +62,15 @@ def _matched_indices(target_name: str, route_stops: tuple[FareStageStop, ...]) -
     unique_names = list(dict.fromkeys(normalized))
     if not unique_names:
         return None
-    scored = sorted(((fuzz.ratio(target, name), name) for name in unique_names), reverse=True)
-    best_score, best_name = scored[0]
-    next_score = scored[1][0] if len(scored) > 1 else 0
-    if best_score < 92 or best_score - next_score < 5:
+    # Fare master and GTFS use inconsistent abbreviations and compound names.
+    # Keep close candidates for the ordered-path check below instead of
+    # rejecting all non-exact route-stop labels at a high fuzzy threshold.
+    scored = sorted(((fuzz.ratio(target, name), name) for name in set(normalized) if name), reverse=True)
+    if not scored or scored[0][0] < 65:
         return None
-    return [index for index, name in enumerate(normalized) if name == best_name], False
+    best_score = scored[0][0]
+    candidate_names = {name for score, name in scored if score >= best_score - 8}
+    return [index for index, name in enumerate(normalized) if name in candidate_names], False
 
 
 def _unavailable(note: str) -> dict:

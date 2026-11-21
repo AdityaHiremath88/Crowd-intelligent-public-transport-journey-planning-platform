@@ -28,6 +28,7 @@ class JourneySearchRequest(BaseModel):
     departure_datetime: datetime
     preference: Literal["fastest", "balanced", "comfort"] = "balanced"
     max_transfers: int = Field(default=1, ge=0, le=3)
+    route_id: str | None = Field(default=None, max_length=128)
 
     @model_validator(mode="after")
     def different_stops(self) -> "JourneySearchRequest":

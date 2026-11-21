@@ -1,4 +1,4 @@
-const API_BASE = (window.YUKTIX_API_BASE || 'http://localhost:8000').replace(/\/$/, '')
+const API_BASE = (window.YUKTIX_API_BASE || 'http://127.0.0.1:8002').replace(/\/$/, '')
 const cache = new Map()
 async function request(path, options = {}) {
   const { timeoutMs = 12000, ...fetchOptions } = options
@@ -38,6 +38,13 @@ export const api = {
       coordinate_source: stop.coordinate_source,
     }))
   },
+  async searchRoutes(query, limit = 12) {
+    const key = query.trim()
+    if (key.length < 1) return []
+    const result = await request(`/api/v2/routes?q=${encodeURIComponent(key)}&limit=${limit}`)
+    return result.items || []
+  },
+  async route(routeId) { return request(`/api/v2/routes/${encodeURIComponent(routeId)}`) },
   async searchStops(query, limit = 8) {
     const key = query.trim().toLowerCase()
     if (key.length < 2) return []

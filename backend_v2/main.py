@@ -221,6 +221,53 @@ def search_stops(
         con.close()
 
 
+@app.get("/api/v2/routes", tags=["routes"])
+def search_routes(q: str = Query(min_length=1, max_length=80), limit: int = Query(default=12, ge=1, le=30)) -> dict:
+    """Search route numbers and names from the imported static GTFS feed."""
+    if not DATABASE_PATH.is_file():
+        raise HTTPException(status_code=503, detail={"code": "GTFS_DATABASE_MISSING", "message": "Run the v2 GTFS import first."})
+    con = duckdb.connect(str(DATABASE_PATH), read_only=True)
+    try:
+        rows = con.execute("""
+            SELECT r.route_id, coalesce(nullif(r.route_short_name, ''), r.route_id),
+                   coalesce(r.route_long_name, ''), count(DISTINCT t.trip_id)
+            FROM routes r JOIN trips t USING(route_id)
+            WHERE lower(coalesce(r.route_short_name, '') || ' ' || coalesce(r.route_long_name, '')) LIKE '%' || lower(?) || '%'
+            GROUP BY r.route_id, r.route_short_name, r.route_long_name
+            ORDER BY CASE WHEN lower(coalesce(r.route_short_name, '')) = lower(?) THEN 0 ELSE 1 END,
+                     lower(coalesce(r.route_short_name, '')), r.route_id
+            LIMIT ?
+        """, [q.strip(), q.strip(), limit]).fetchall()
+        return {"items": [{"route_id": row[0], "route_name": row[1], "route_long_name": row[2], "scheduled_trip_count": row[3]} for row in rows], "source": "GTFS static feed"}
+    finally:
+        con.close()
+
+
+@app.get("/api/v2/routes/{route_id}", tags=["routes"])
+def route_detail(route_id: str) -> dict:
+    """Return one representative ordered stop pattern for a GTFS route."""
+    if not DATABASE_PATH.is_file():
+        raise HTTPException(status_code=503, detail={"code": "GTFS_DATABASE_MISSING", "message": "Run the v2 GTFS import first."})
+    con = duckdb.connect(str(DATABASE_PATH), read_only=True)
+    try:
+        route = con.execute("SELECT route_id, coalesce(nullif(route_short_name, ''), route_id), coalesce(route_long_name, '') FROM routes WHERE route_id = ?", [route_id]).fetchone()
+        if not route:
+            raise HTTPException(status_code=404, detail={"code": "UNKNOWN_ROUTE", "message": "Unknown GTFS route ID."})
+        trip = con.execute("""
+            SELECT t.trip_id, coalesce(t.trip_headsign, '') FROM trips t JOIN stop_times st USING(trip_id)
+            WHERE t.route_id = ? GROUP BY t.trip_id, t.trip_headsign ORDER BY count(*) DESC, t.trip_id LIMIT 1
+        """, [route_id]).fetchone()
+        if not trip:
+            raise HTTPException(status_code=404, detail={"code": "ROUTE_WITHOUT_TRIPS", "message": "No scheduled trips were found for this route."})
+        stops = con.execute("""
+            SELECT s.stop_id, s.stop_name FROM stop_times st JOIN stops s USING(stop_id)
+            WHERE st.trip_id = ? ORDER BY try_cast(st.stop_sequence AS INTEGER), st.stop_sequence
+        """, [trip[0]]).fetchall()
+        return {"route_id": route[0], "route_name": route[1], "route_long_name": route[2], "headsign": trip[1], "stops": [{"stop_id": row[0], "stop_name": row[1]} for row in stops], "source": "GTFS static feed", "pattern_note": "Stops follow one representative scheduled trip pattern; order can vary on other trips."}
+    finally:
+        con.close()
+
+
 @app.post("/api/v2/journeys/search", response_model=JourneySearchResponse, tags=["journeys"])
 def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
     try:
@@ -251,6 +298,10 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
         departure_seconds, active_services_for_date(departure.date(), schedule.calendar_rows, schedule.exception_rows),
         max_transfers=request.max_transfers, search_index=schedule.search_index,
     )
+    if request.route_id:
+        if not any(trip.route_id == request.route_id for trip in schedule.trips):
+            raise HTTPException(status_code=404, detail={"code": "UNKNOWN_ROUTE", "message": "Unknown GTFS route ID."})
+        options = [option for option in options if any(leg.route_id == request.route_id for leg in option.legs)]
     if departure_seconds < 6 * 3600:
         previous_date = departure.date() - timedelta(days=1)
         previous = search_journeys(
@@ -259,6 +310,8 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
             active_services_for_date(previous_date, schedule.calendar_rows, schedule.exception_rows),
             max_transfers=request.max_transfers, search_index=schedule.search_index,
         )
+        if request.route_id:
+            previous = [option for option in previous if any(leg.route_id == request.route_id for leg in option.legs)]
         options.extend(
             replace(
                 option,
@@ -328,5 +381,5 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
             "Crowd data is unavailable. Options are ranked using scheduled travel time and transfers; "
             "the comfort preference cannot optimize for crowd exposure yet."
         ),
-        message=None if response_options else "No scheduled journey was found for this departure and service date.",
+        message=None if response_options else ("No scheduled journey using this route was found for the selected stops and departure time." if request.route_id else "No scheduled journey was found for this departure and service date."),
     )

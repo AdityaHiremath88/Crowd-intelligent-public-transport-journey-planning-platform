@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yuktix-shell-v2'
+const CACHE_NAME = 'yuktix-shell-v5'
 const SHELL = ['/', '/index.html', '/app.js', '/api.js', '/app.css', '/app-extra.css', '/app-auth.css', '/app-interactions.css', '/app-stitch.css', '/config.example.js', '/manifest.webmanifest', '/yuktix-icon.svg']
 
 self.addEventListener('install', event => {

@@ -6,7 +6,7 @@ Mobile-first, responsive web app for Delhi bus riders. The current runnable fron
 
 Requirements: Python 3.11+ and Node.js 20+.
 
-1. Start the rebuilt v2 FastAPI backend from the repository root at `http://localhost:8001` (import GTFS and the cleaned ETM bundle first; see the root README).
+1. Start the rebuilt v2 FastAPI backend from the repository root at `http://127.0.0.1:8002` (import GTFS and the cleaned ETM bundle first; see the root README).
 2. From this folder, run `npm install` once, then `npm run dev`.
 3. Open `http://localhost:5173` (use `localhost`, which is allowed by the backend CORS defaults).
 
@@ -26,6 +26,7 @@ The API URL is set centrally in `config.example.js` as `window.YUKTIX_API_BASE`.
 
 - `GET /api/v2/capabilities`
 - `GET /api/v2/stops?q=...&limit=...`
+- `GET /api/v2/routes?q=...&limit=...` and `GET /api/v2/routes/{route_id}`
 - `POST /api/v2/journeys/search`
 - `GET /api/v2/routes/{route_id}/activity?target_date=YYYY-MM-DD&hour=0..23`
 - `GET /api/v1/stops?q=...&limit=...` for existing stop details and community features

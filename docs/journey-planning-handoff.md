@@ -34,7 +34,7 @@ Import the static feed and the full cleaned ETM bundle before running the rebuil
 ```powershell
 python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
 python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
-python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8001
+python -m uvicorn backend_v2.main:app --host 127.0.0.1 --port 8002
 ```
 
 The route activity response groups October records by exact route-label candidate, matching weekday, and transaction hour. It requires at least three earlier comparable days, shows the dates, and leaves route matching explicitly unverified. This is the available historical signal; it is not an onboard crowd estimate and does not yet supply a crowd-optimized route ranking.
