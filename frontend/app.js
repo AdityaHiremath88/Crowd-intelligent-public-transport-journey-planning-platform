@@ -1,10 +1,11 @@
-import { api } from './api.js?v=route-search-2'
+import { api } from './api.js?v=journey-controls-3'
 
 const app = document.querySelector('#app')
 const toastNode = document.querySelector('#toast')
 const savedKey = 'yuktix.savedJourneys.v1'
 const tokenKey = 'yuktix.reportClient.v1'
 const state = { page: location.hash.slice(1) || 'home', origin: null, destination: null, stop: null, reportStop: null, reportRoute: null, preference: 'balanced', departure: new Date(Date.now() + 5 * 60000), reportCategory: null, reportFeedback: null, capabilities: null, capabilityError: null, results: null, selectedJourney: null, stopData: null, stopLoading: false, reportSent: false, operatorData: null, stopError: null, routeQuery: '', routeMatches: [], selectedRoute: null, routeStops: [], routeLoading: false, routeOriginId: '', routeDestinationId: '', crowdMode: 'bus', crowdRouteQuery: '', crowdRouteMatches: [], crowdRoute: null, crowdActivity: [], crowdActivityLoading: false, crowdActivityError: null }
+const ticketActivityCache = new Map()
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[char])
 let toastTimer
 function toast(message) { toastNode.textContent = message; toastNode.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastNode.classList.remove('show'), 3200) }
@@ -21,6 +22,33 @@ function fareCompactText(fare) {
   return 'Unavailable'
 }
 function brandHeader(label = 'Home Search') { return `<header class="topbar"><a class="brand" href="#home"><span class="brand-mark"><span class="material-symbols-outlined">hub</span></span><span><b>YUKTIX</b><small>${escapeHtml(label)}</small></span></a><div class="header-actions"><button class="icon-btn" data-route="operator" aria-label="Historical ticket insights"><span class="material-symbols-outlined">insights</span></button><button class="avatar" data-route="auth" aria-label="Account options"><span class="material-symbols-outlined">person</span></button></div></header>` }
+function journeyElapsedSeconds(journey){const arrival=Date.parse(journey.arrival_datetime);const departure=state.departure.getTime();return Number.isFinite(arrival)?Math.max(0,(arrival-departure)/1000):Number(journey.duration_seconds||0)}
+function orderedJourneyOptions(){
+  const options=[...(state.results?.options||[])],maxElapsed=Math.max(1,...options.map(journeyElapsedSeconds)),maxTransfers=Math.max(1,...options.map(item=>Number(item.transfers)||0))
+  const balanced=item=>.5*(journeyElapsedSeconds(item)/maxElapsed)+.5*((Number(item.transfers)||0)/maxTransfers)
+  return options.sort((a,b)=>{
+    if(state.preference==='fastest')return journeyElapsedSeconds(a)-journeyElapsedSeconds(b)||(Number(a.transfers)||0)-(Number(b.transfers)||0)
+    if(state.preference==='comfort'){
+      const aa=a.ticketActivity?.complete?Number(a.ticketActivity.averagePassengers):null,bb=b.ticketActivity?.complete?Number(b.ticketActivity.averagePassengers):null
+      if(aa!==null&&bb!==null&&aa!==bb)return aa-bb
+      if((aa===null)!==(bb===null))return aa===null?1:-1
+    }
+    return balanced(a)-balanced(b)||journeyElapsedSeconds(a)-journeyElapsedSeconds(b)
+  })
+}
+async function loadJourneyTicketActivity(options){
+  const legs=options.flatMap((option,index)=>(option.legs||[]).map(leg=>({option,index,leg})))
+  const unique=new Map()
+  for(const {leg} of legs){if(!leg.route_id||!leg.departure_datetime)continue;const key=`${leg.route_id}|${String(leg.departure_datetime).slice(0,13)}`;if(!unique.has(key)){if(!ticketActivityCache.has(key))ticketActivityCache.set(key,api.routeActivity(leg.route_id,leg.departure_datetime).catch(()=>null));unique.set(key,ticketActivityCache.get(key))}}
+  await Promise.all(unique.values())
+  for(const option of options){
+    const activities=(option.legs||[]).map(leg=>{const key=`${leg.route_id}|${String(leg.departure_datetime||'').slice(0,13)}`;return unique.has(key)?ticketActivityCache.get(key):null})
+    const values=await Promise.all(activities)
+    const passengers=values.map(item=>item?.status==='available'?Number(item.average_passenger_volume):null)
+    option.ticketActivity={complete:passengers.length>0&&passengers.every(Number.isFinite),averagePassengers:passengers.every(Number.isFinite)?passengers.reduce((sum,value)=>sum+value,0):null,matchedLegs:passengers.filter(Number.isFinite).length,totalLegs:passengers.length}
+  }
+  if(state.page==='results')render()
+}
 function bottomNav() {
   const active = state.page === 'home' ? 'home' : ['results','journey','rides'].includes(state.page) ? 'rides' : state.page === 'stop' ? state.crowdMode : ''
   return `<nav class="bottom-nav" aria-label="Main navigation"><a class="${active==='home'?'selected':''}" href="#home"><span class="material-symbols-outlined">search</span>Search</a><a class="${active==='rides'?'selected':''}" href="#rides"><span class="material-symbols-outlined">alt_route</span>Routes</a><a class="${active==='stop'?'selected':''}" href="#stop" data-action="crowd-mode" data-value="stop"><span class="material-symbols-outlined">location_on</span>Stops</a><a class="${active==='bus'?'selected':''}" href="#stop" data-action="crowd-mode" data-value="bus"><span class="material-symbols-outlined">groups</span>Crowd</a></nav>`
@@ -43,14 +71,16 @@ function homePage() {
     </main>${bottomNav()}`
 }
 function resultsPage() {
-  const options=state.results?.options||[]
+  const options=orderedJourneyOptions()
   const unavailable=!state.capabilities?.scheduled_journey_search||state.results?.data_status==='unavailable'
   const cards=options.map((journey,index)=>{
     const first=journey.legs?.[0],last=journey.legs?.at(-1)
     const duration=Math.round((journey.duration_seconds||0)/60)
     const fare=journey.fare_estimate
     const legs=(journey.legs||[]).map((leg,legIndex)=>`${legIndex?'<span class="route-chain-arrow material-symbols-outlined">chevron_right</span>':''}<span class="route-chain-pill"><span class="material-symbols-outlined">directions_bus</span>${escapeHtml(leg.route_name||leg.route_id)}</span>`).join('')
-    return `<article class="recommended-card result-option"><div class="route-top"><span class="option-label">OPTION ${index+1}</span>${index===0?'<span class="recommended-tag">BEST MATCH</span>':''}<span class="live-in">${escapeHtml(journey.eta_source||'GTFS schedule')}</span></div><div class="result-option-main"><div><div class="trip-duration">${duration}<small> MIN</small></div><div class="trip-kind">Total scheduled travel time</div></div><div class="result-fare"><span>ESTIMATED FARE</span><b>${fare?.status==='estimated'?`₹${fare.ordinary_adult_total_inr} / ₹${fare.ac_adult_total_inr}`:fare?.status==='partial'?'Partial':'Unavailable'}</b><small>Ordinary / AC adult</small></div></div><div class="route-chain">${legs||'<span class="route-chain-pill">Bus legs unavailable</span>'}</div><div class="result-endpoints"><span><i class="endpoint-dot start"></i>${escapeHtml(first?.from_stop?.stop_name||state.origin?.stop_name)}</span><span><i class="endpoint-dot end"></i>${escapeHtml(last?.to_stop?.stop_name||state.destination?.stop_name)}</span></div><div class="result-meta"><span>${Number(journey.transfers)||0} ${Number(journey.transfers)===1?'change':'changes'} · ${scheduleTime(journey.departure_datetime)}</span><span class="crowd-unknown"><span class="material-symbols-outlined">groups</span>Crowding unavailable</span></div><button class="primary-action" data-action="open-journey" data-index="${index}">VIEW JOURNEY DETAILS <span class="material-symbols-outlined">arrow_forward</span></button></article>`
+    const activity=journey.ticketActivity?.complete?`Past ticket volume · ${Math.round(journey.ticketActivity.averagePassengers).toLocaleString('en-IN')} avg`:'Past ticket volume · no match'
+    const pick=state.preference==='fastest'?'FASTEST':state.preference==='comfort'?(journey.ticketActivity?.complete?'COMFORT PICK':'NORMAL PICK'):'NORMAL PICK'
+    return `<article class="recommended-card result-option"><div class="route-top"><span class="option-label">OPTION ${index+1}</span>${index===0?`<span class="recommended-tag">${pick}</span>`:''}<span class="live-in">${escapeHtml(journey.eta_source||'GTFS schedule')}</span></div><div class="result-option-main"><div><div class="trip-duration">${duration}<small> MIN</small></div><div class="trip-kind">Total scheduled travel time</div></div><div class="result-fare"><span>ESTIMATED FARE</span><b>${fare?.status==='estimated'?`₹${fare.ordinary_adult_total_inr} / ₹${fare.ac_adult_total_inr}`:fare?.status==='partial'?'Partial':'Unavailable'}</b><small>Ordinary / AC adult</small></div></div><div class="route-chain">${legs||'<span class="route-chain-pill">Bus legs unavailable</span>'}</div><div class="result-endpoints"><span><i class="endpoint-dot start"></i>${escapeHtml(first?.from_stop?.stop_name||state.origin?.stop_name)}</span><span><i class="endpoint-dot end"></i>${escapeHtml(last?.to_stop?.stop_name||state.destination?.stop_name)}</span></div><div class="result-meta"><span>${Number(journey.transfers)||0} ${Number(journey.transfers)===1?'change':'changes'} · ${scheduleTime(journey.departure_datetime)}</span><span class="crowd-unknown"><span class="material-symbols-outlined">query_stats</span>${activity}</span></div><button class="primary-action" data-action="open-journey" data-index="${index}">VIEW JOURNEY DETAILS <span class="material-symbols-outlined">arrow_forward</span></button></article>`
   }).join('')
   return `${brandHeader('Journey Results')}<main class="screen results-screen"><div class="result-summary"><span class="summary-point"></span><span>${escapeHtml(state.origin?.stop_name||'Choose origin')}</span><span class="material-symbols-outlined summary-arrow">east</span><span>${escapeHtml(state.destination?.stop_name||'Choose destination')}</span><a href="#home" class="summary-edit" aria-label="Edit journey"><span class="material-symbols-outlined">edit</span></a></div><div class="filter-tabs">${[['fastest','Fastest'],['balanced','Normal'],['comfort','Comfort']].map(([v,l])=>`<button class="filter-tab ${state.preference===v?'active':''}" data-action="preference" data-value="${v}" ${state.journeyLoading?'disabled':''}>${l}</button>`).join('')}</div><div class="result-departure"><span class="material-symbols-outlined">schedule</span>Departing ${scheduleTime(state.departure.toISOString())}<a href="#home">Change</a></div>${state.journeyLoading?'<div class="crowd-state">Loading the saved timetable and searching for scheduled trips…</div>':unavailable?`<div class="crowd-state"><strong>Journey planning unavailable</strong><br>${escapeHtml(state.results?.message||'A validated Delhi GTFS schedule is not currently connected. Stop search and historical stop insights are available.')}</div><button class="primary-action" data-action="retry-search">RETRY JOURNEY SEARCH</button>`:cards||'<div class="crowd-state">The schedule service returned no journeys for these stops and departure time.</div>'}</main>${bottomNav()}`
 }
@@ -60,7 +90,7 @@ function journeyPage() {
   const legs=journey.legs||[]
   const tools=`<button class="round-tool" data-action="save" aria-label="Save journey"><span class="material-symbols-outlined">bookmark</span></button><button class="round-tool" data-action="share" aria-label="Share journey"><span class="material-symbols-outlined">share</span></button>`
   const timeline=legs.map((leg,index)=>{const fare=leg.fare_estimate;const perLeg=fare?.status==='estimated'?`Est. ₹${fare.ordinary_adult_fare_inr} ordinary / ₹${fare.ac_adult_fare_inr} AC`:'Fare unavailable';return `<article class="journey-event"><span class="event-node"><span class="material-symbols-outlined">directions_bus</span></span><span class="event-label">${index?'Transfer · ':''}${escapeHtml(leg.route_name||leg.route_id)}</span><h3>${escapeHtml(leg.from_stop?.stop_name||'Boarding stop')}</h3><p>Scheduled departure: ${scheduleTime(leg.departure_datetime)}</p><div class="event-meta"><span>Alight at ${escapeHtml(leg.to_stop?.stop_name||'destination')}</span><span>Arrive ${scheduleTime(leg.arrival_datetime)}</span></div><p class="subtle-note">${escapeHtml(perLeg)}</p></article>`}).join('')
-  return `${pageHeader('Journey details','Scheduled itinerary',tools)}<main class="screen"><section class="detail-summary"><div class="route-badges"><span class="route-pill">${legs.length} ${legs.length===1?'leg':'legs'}</span><span class="tradeoff-pill">${Number(journey.transfers)||0} transfers</span></div><div class="place-list"><div class="place-stop">${escapeHtml(legs[0]?.from_stop?.stop_name||state.origin?.stop_name)}</div><div class="place-stop">${escapeHtml(legs.at(-1)?.to_stop?.stop_name||state.destination?.stop_name)}</div></div><div class="detail-stats"><div class="stat-box"><span>Scheduled duration</span><b>${Math.round((journey.duration_seconds||0)/60)}<small style="font-size:12px"> min</small></b></div><div class="stat-box"><span>Waiting</span><b>${Math.round((journey.waiting_seconds||0)/60)}<small style="font-size:12px"> min</small></b></div><div class="stat-box"><span>Ordinary / AC · est.</span><b style="font-size:16px">${escapeHtml(fareCompactText(journey.fare_estimate))}</b></div></div><p class="source-caption">${escapeHtml(state.results?.data_source||'schedule service')} · ${scheduleTime(state.results?.generated_at)}</p></section><div class="timeline-title"><h2>Journey steps</h2><span class="sync-label">${escapeHtml(journey.eta_source||'SCHEDULED')}</span></div><section class="journey-timeline">${timeline||'<div class="crowd-state">No leg detail was returned by the schedule service.</div>'}</section><button class="report-route-btn" data-action="report-route"><span class="material-symbols-outlined">flag</span> Report crowding at a stop</button></main>${bottomNav()}`
+  return `${pageHeader('Journey details','Scheduled itinerary',tools)}<main class="screen"><section class="detail-summary"><div class="route-badges"><span class="route-pill">${legs.length} ${legs.length===1?'leg':'legs'}</span><span class="tradeoff-pill">${Number(journey.transfers)||0} transfers</span></div><div class="place-list"><div class="place-stop">${escapeHtml(legs[0]?.from_stop?.stop_name||state.origin?.stop_name)}</div><div class="place-stop">${escapeHtml(legs.at(-1)?.to_stop?.stop_name||state.destination?.stop_name)}</div></div><div class="detail-stats"><div class="stat-box"><span>Scheduled duration</span><b>${Math.round((journey.duration_seconds||0)/60)}<small style="font-size:12px"> min</small></b></div><div class="stat-box"><span>Waiting</span><b>${Math.round((journey.waiting_seconds||0)/60)}<small style="font-size:12px"> min</small></b></div><div class="stat-box"><span>Ordinary / AC · est.</span><b style="font-size:16px">${escapeHtml(fareCompactText(journey.fare_estimate))}</b></div></div><p class="source-caption">${escapeHtml(state.results?.data_source||'schedule service')} · ${scheduleTime(state.results?.generated_at)}</p></section><div class="timeline-title"><h2>Journey steps</h2><span class="sync-label">${escapeHtml(journey.eta_source||'SCHEDULED')}</span></div><section class="journey-timeline">${timeline||'<div class="crowd-state">No leg detail was returned by the schedule service.</div>'}</section><button class="report-route-btn crowd-status-btn" data-action="journey-crowd"><span class="material-symbols-outlined">insights</span> View crowd status for this route</button><button class="report-route-btn" data-action="report-route"><span class="material-symbols-outlined">flag</span> Report crowding at a stop</button></main>${bottomNav()}`
 }
 function chartBars(observations=[]) {
   const hours=Array.from({length:24},(_,i)=>i), counts=hours.map(h=>observations.filter(o=>o.transaction_hour===h).reduce((sum,o)=>sum+(o.passenger_volume||0),0)), max=Math.max(1,...counts)
@@ -89,7 +119,7 @@ function stopPage() {
   return `${brandHeader('Crowd Reporting')}<main class="screen crowd-insights-screen"><div class="crowd-insights-heading"><button class="back-btn" data-route="home" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button><h1><i></i>Crowd Insights</h1>${actions}</div><div class="crowd-mode-tabs"><button class="${state.crowdMode==='bus'?'active':''}" data-action="crowd-mode" data-value="bus"><span class="material-symbols-outlined">directions_bus</span>Bus Crowd</button><button class="${state.crowdMode==='stop'?'active':''}" data-action="crowd-mode" data-value="stop"><span class="material-symbols-outlined">signpost</span>Stop Crowd</button></div>
     ${state.crowdMode==='bus'?`<div class="crowd-lookup"><span class="material-symbols-outlined">directions_bus</span><input data-crowd-route-query value="${escapeHtml(route?route.route_name:state.crowdRouteQuery)}" placeholder="Search a bus route" aria-label="Search a bus route" autocomplete="off"><button data-action="sync-crowd" aria-label="Sync route activity"><span class="material-symbols-outlined">sync</span></button>${routeSuggestions}</div>`:`<label class="crowd-lookup"><span class="material-symbols-outlined">location_on</span><input data-stop-field="stop" value="${escapeHtml(stopName)}" placeholder="Search a bus stop" aria-label="Search a bus stop" autocomplete="off"><span class="suggestions" data-suggestions="stop" hidden></span><button data-action="sync-crowd" aria-label="Sync stop activity"><span class="material-symbols-outlined">sync</span></button></label>`}
     ${state.crowdMode==='stop'&&state.stopLoading?'<div class="crowd-loading"><span class="material-symbols-outlined">sync</span>Loading stop insights…</div>':''}
-    <article class="crowd-route-card"><div class="crowd-route-icon"><span class="material-symbols-outlined">${state.crowdMode==='bus'?'directions_bus':'groups'}</span></div><div class="crowd-route-copy"><strong>${escapeHtml(heading)}</strong><small>${state.crowdMode==='bus'?route?.route_long_name&&route.route_long_name!==route.route_name?escapeHtml(route.route_long_name):'Historical route activity':'Crowd insights for selected stop'}</small></div><div class="crowd-route-side"><small>${state.crowdMode==='bus'?'DATA':'REPORTS'}</small><b>${state.crowdMode==='bus'?state.crowdActivity.length?`${state.crowdActivity.length} times`:'—':state.stopData?.crowd?.report_count??'—'}</b></div></article>
+    <article class="crowd-route-card"><div class="crowd-route-icon"><span class="material-symbols-outlined">${state.crowdMode==='bus'?'directions_bus':'groups'}</span></div><div class="crowd-route-copy"><strong>${escapeHtml(heading)}</strong><small>${state.crowdMode==='bus'?`${route?.route_long_name&&route.route_long_name!==route.route_name?escapeHtml(route.route_long_name):'Historical route activity'}${state.stop?.stop_name?` · From ${escapeHtml(state.stop.stop_name)}`:''}`:'Crowd insights for selected stop'}</small></div><div class="crowd-route-side"><small>${state.crowdMode==='bus'?'DATA':'REPORTS'}</small><b>${state.crowdMode==='bus'?state.crowdActivity.length?`${state.crowdActivity.length} times`:'—':state.stopData?.crowd?.report_count??'—'}</b></div></article>
     <article class="crowd-status-card"><div class="crowd-status-title"><span class="crowd-status-icon material-symbols-outlined">${state.crowdMode==='bus'?'query_stats':'groups'}</span><div><small>${state.crowdMode==='bus'?'HISTORICAL SIGNAL':'COMMUNITY SIGNAL'}</small><h2>${escapeHtml(summaryTitle)}</h2></div></div><strong class="crowd-status-value">${escapeHtml(mainStat)}</strong><div class="crowd-status-footer"><span><span class="material-symbols-outlined">schedule</span>${escapeHtml(state.crowdMode==='bus'?'October history · weekday matched':sourceLabel)}</span><button data-action="sync-crowd"><span class="material-symbols-outlined">sync</span>Sync</button></div></article>
     <article class="crowd-trend-card"><div class="crowd-trend-heading"><div><span class="material-symbols-outlined">analytics</span><h2>${state.crowdMode==='bus'?'Ticket Activity by Time':'Stop Activity by Time'}</h2></div><span>HISTORICAL</span></div>${state.crowdMode==='bus'&&state.crowdActivityLoading?'<div class="crowd-chart-empty">Loading matched weekday history…</div>':chart}<div class="crowd-time-axis">${[6,9,12,15,18,21].map((hour,index)=>`<span>${hour===12?'12 PM':hour<12?`${hour} AM`:`${hour-12} PM`}</span>`).join('')}</div></article>
     ${state.crowdActivityError?`<p class="crowd-inline-error">${escapeHtml(state.crowdActivityError)}</p>`:''}<button class="crowd-report-button" data-action="report-current-crowd"><span class="material-symbols-outlined">group_add</span>Report Current Crowd</button></main>${bottomNav()}`
@@ -191,6 +221,7 @@ async function journeySearch(){
     if(state.capabilityError)state.results={data_status:'unavailable',message:`Backend status unavailable: ${state.capabilityError}`}
     else if(state.capabilities?.scheduled_journey_search){try{state.results=await api.journeySearchV2({origin_stop_id:origin.id,destination_stop_id:destination.id,departure_datetime:state.departure.toISOString(),preference:state.preference,max_transfers:state.selectedRoute?0:1,...(state.selectedRoute?{route_id:state.selectedRoute.route_id}:{})})}catch(error){state.results={data_status:'unavailable',message:error.message};toast(`Journey search failed: ${error.message}`)}}else state.results={data_status:'unavailable',message:'A validated Delhi GTFS timetable is not currently connected.'}
     location.hash='#results'
+    if(state.results?.options?.length)loadJourneyTicketActivity(state.results.options)
   }catch(error){state.results={data_status:'unavailable',message:`Stop search failed: ${error.message}`};toast(`Stop search failed: ${error.message}`);location.hash='#results'}
   finally{if(button)button.disabled=false}
 }
@@ -230,6 +261,14 @@ function chooseCrowdRoute(routeId){
   const route=state.crowdRouteMatches.find(item=>item.route_id===routeId)
   if(!route)return
   state.crowdMode='bus';state.crowdRoute={...route};state.crowdRouteMatches=[];state.crowdRouteQuery='';state.crowdActivity=[];location.hash='#stop';loadCrowdRouteActivity()
+}
+function seedCrowdFromJourney(journey){
+  const leg=journey?.legs?.[0]
+  if(!leg)return false
+  state.stop={id:leg.from_stop.stop_id,stop_name:leg.from_stop.stop_name}
+  state.crowdRoute={route_id:leg.route_id,route_name:leg.route_name||leg.route_id,route_long_name:leg.route_name||leg.route_id}
+  state.crowdRouteQuery='';state.crowdRouteMatches=[];state.crowdMode='bus';state.crowdActivity=[];state.crowdActivityError=null;state.stopData=null
+  return true
 }
 async function selectRoute(routeId){
   const route=state.routeMatches.find(item=>item.route_id===routeId)
@@ -275,27 +314,32 @@ async function clickHandler(event){
   const {action,value,field,stopId,stopName}=node.dataset
   if(action==='back'){location.hash=state.page==='journey'?'#results':state.page==='results'?'#home':'#home'}
   if(action==='swap'){const old=state.origin;state.origin=state.destination;state.destination=old;render()}
-  if(action==='preference'){
-    state.preference=value
-    if(state.page==='results'&&state.capabilities?.scheduled_journey_search&&state.origin?.id&&state.destination?.id){
-      state.journeyLoading=true;state.results=null;render()
-      try{state.results=await api.journeySearchV2({origin_stop_id:state.origin.id,destination_stop_id:state.destination.id,departure_datetime:state.departure.toISOString(),preference:value,max_transfers:state.selectedRoute?0:1,...(state.selectedRoute?{route_id:state.selectedRoute.route_id}:{})})}
-      catch(error){state.results={data_status:'unavailable',message:error.message}}
-      finally{state.journeyLoading=false;render()}
-    }else render()
-  }
+  if(action==='preference'){state.preference=value;render()}
   if(action==='search')await journeySearch()
   if(action==='retry-search')await journeySearch()
   if(action==='retry-capabilities'){state.capabilityError=null;await loadDefaults()}
   if(action==='choose-stop')selectStop(field,{id:stopId,stop_name:stopName})
   if(action==='route-search')await searchRoutes()
   if(action==='select-route')await selectRoute(node.dataset.routeId)
-  if(action==='crowd-mode'){state.crowdMode=value;if(value==='stop'){state.stop=state.stop||state.origin;if(state.stop)state.stopData=null}render();if(value==='stop'&&state.stop)loadStopData(state.stop)}
+  if(action==='crowd-mode'){
+    if(state.page!=='stop'){
+      const journey=state.selectedJourney||orderedJourneyOptions()[0]
+      if(journey)seedCrowdFromJourney(journey)
+      else if(value==='stop')state.stop=state.origin||state.stop
+      else if(value==='bus'&&!state.crowdRoute&&state.selectedRoute)state.crowdRoute={...state.selectedRoute,route_name:state.selectedRoute.route_name||state.selectedRoute.route_id}
+    }
+    state.crowdMode=value
+    if(value==='stop'&&state.stop)state.stopData=null
+    render()
+    if(value==='stop'&&state.stop)loadStopData(state.stop)
+    else if(value==='bus'&&state.crowdRoute)loadCrowdRouteActivity()
+  }
   if(action==='choose-crowd-route')chooseCrowdRoute(node.dataset.routeId)
   if(action==='sync-crowd'){if(state.crowdMode==='bus')await loadCrowdRouteActivity();else if(state.stop)await refreshCrowdStop();else toast('Search for a stop first.')}
   if(action==='report-current-crowd'){state.reportStop=state.crowdMode==='stop'?state.stop:null;state.reportRoute=state.crowdMode==='bus'?state.crowdRoute?.route_id||null:null;state.reportCategory=null;state.reportFeedback=null;state.reportSent=false;location.hash='#report'}
   if(action==='clear-route'){state.selectedRoute=null;state.routeStops=[];state.routeOriginId='';state.routeDestinationId='';render()}
-  if(action==='open-journey'){state.selectedJourney=state.results?.options?.[Number(node.dataset.index)]||null;if(state.selectedJourney)location.hash='#journey';else toast('This itinerary is not available. Search again.')}
+  if(action==='open-journey'){state.selectedJourney=orderedJourneyOptions()[Number(node.dataset.index)]||null;if(state.selectedJourney)location.hash='#journey';else toast('This itinerary is not available. Search again.')}
+  if(action==='journey-crowd'){if(!seedCrowdFromJourney(state.selectedJourney))toast('This journey has no bus leg to show.');else{location.hash='#stop';loadCrowdRouteActivity()}}
   if(action==='open-stop')await openStop()
   if(action==='plan-from-stop'&&state.stop){state.origin=state.stop;state.destination=null;location.hash='#home'}
   if(action==='report-route'){state.stop=state.origin;state.reportStop=state.origin;state.reportRoute=state.selectedJourney?.legs?.[0]?.route_id||null;state.reportCategory=null;state.reportFeedback=null;state.reportSent=false;location.hash='#report'}

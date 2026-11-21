@@ -180,3 +180,5 @@
   .hero-stitch h1 { font-size: 34px; }
   .recommended-card.result-option { padding: 20px; }
 }
+.report-route-btn.crowd-status-btn { border-color: transparent; background: #98421b; color: #fff; box-shadow: 0 8px 18px #98421b2b; }
+.result-meta .crowd-unknown { max-width: 62%; text-align: right; }

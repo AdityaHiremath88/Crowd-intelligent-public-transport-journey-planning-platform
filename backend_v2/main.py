@@ -435,6 +435,9 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
                 route_short_name=schedule.route_short_names.get(leg.route_id, ""),
                 stop_names=path_names,
                 database_path=DATABASE_PATH,
+                trip_id=leg.trip_id,
+                from_stop_id=leg.from_stop_id,
+                to_stop_id=leg.to_stop_id,
             )
             fare_estimates.append(fare_estimate)
             legs.append(JourneyLeg(
@@ -470,8 +473,8 @@ def journey_search(request: JourneySearchRequest) -> JourneySearchResponse:
         preference=request.preference,
         generated_at=datetime.now(UTC),
         ranking_note=(
-            "Crowd data is unavailable. Options are ranked using scheduled travel time and transfers; "
-            "the comfort preference cannot optimize for crowd exposure yet."
+            "The API ranking uses scheduled time and transfers. Historical route-hour ticket activity "
+            "is a demand signal, not measured onboard occupancy or physical crowding."
         ),
         message=None if response_options else ("No scheduled journey using this route was found for the selected stops and departure time." if request.route_id else "No scheduled journey was found for this departure and service date."),
     )
