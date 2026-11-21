@@ -40,11 +40,12 @@ Most requests have a 12-second timeout; the first journey search after a backend
 
 ## Product data boundaries
 
+- The supplied Yuktix Orbit UI pack informs the visual style for home search, journey comparison/details, reporting, and insights. Demonstration-only route names and live crowd states are replaced by backend results, unavailable states, historical ticket activity, and labeled fare estimates.
 - The app does not show a live map or vehicle positions, even if a feed is available.
 - Stop search uses the loaded GTFS stop catalog and its publisher-provided coordinates. The UI displays coordinates to help distinguish duplicate stop names and explicitly says they are not field-verified.
 - October ticket activity is historical transaction data; it is not people waiting, bus occupancy, a crowd estimate, or a live condition. Journey options show route activity only when the matching weekday/hour has at least three prior observations, and show the dates used.
 - Crowd reports are voluntary subjective observations. The UI shows individual reports and backend aggregates under separate community labels.
-- Scheduled journey search uses the loaded static GTFS timetable. Times are marked approximate and are not live arrivals. No sample routes, fares, fabricated schedules, or live ETAs are shown.
+- Scheduled journey search uses the loaded static GTFS timetable. Times are marked approximate and are not live arrivals. Fare estimates appear only when route and stop matching succeeds, and are labeled estimates. No sample routes, fabricated schedules, or live ETAs are shown.
 - Authentication is unavailable because the backend has no account service. The frontend does not collect or pretend to validate credentials.
 - Saved journeys are available only for backend-confirmed journeys and remain in this browser; they do not sync.
 - Reporting submits a real community report. Do not use the production service for test submissions; use the backend's isolated tests.

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'yuktix-shell-v1'
-const SHELL = ['/', '/index.html', '/app.js', '/api.js', '/app.css', '/app-extra.css', '/app-auth.css', '/app-interactions.css', '/config.example.js', '/manifest.webmanifest', '/yuktix-icon.svg']
+const CACHE_NAME = 'yuktix-shell-v2'
+const SHELL = ['/', '/index.html', '/app.js', '/api.js', '/app.css', '/app-extra.css', '/app-auth.css', '/app-interactions.css', '/app-stitch.css', '/config.example.js', '/manifest.webmanifest', '/yuktix-icon.svg']
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()))

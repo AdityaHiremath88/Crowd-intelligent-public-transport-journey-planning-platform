@@ -1,0 +1,96 @@
+/* Yuktix Orbit UI pack integration. Product data stays schedule based and clearly qualified. */
+:root {
+  --surface: #fff8f3;
+  --ink: #1e1b17;
+  --muted: #56433b;
+  --orange: #98421b;
+  --pink: #ffb0ce;
+  --line: #ead9ce;
+}
+
+.brand { gap: 10px; letter-spacing: 0; }
+.brand b { display: block; font-size: 14px; }
+.brand small { font-size: 10px; letter-spacing: 0; font-weight: 600; }
+.brand-mark { width: 38px; height: 38px; color: var(--orange); background: var(--pink); }
+.brand-mark .material-symbols-outlined { font-size: 22px; }
+.topbar { min-height: 70px; }
+.avatar { width: 40px; height: 40px; }
+
+.hero-stitch {
+  height: 205px;
+  margin: 10px 0 16px;
+  padding: 20px;
+  border-radius: 25px;
+  background: linear-gradient(112deg, #fff1e8 0%, #fff8f3 62%, #f8e9db 100%);
+}
+.hero-stitch .hero-copy { max-width: 67%; }
+.hero-stitch .grid-pill { background: #ffd9e5; color: #713b54; }
+.hero-stitch h1 { font-size: 29px; line-height: 1.08; letter-spacing: -1px; }
+.hero-stitch h1 em { color: var(--orange); font-style: italic; }
+.hero-stitch p { max-width: 230px; margin: 8px 0 0; color: #704b3a; font: 400 11px/1.5 Inter, sans-serif; }
+.hero-art { position: absolute; inset: 0 0 0 auto; width: 42%; overflow: hidden; }
+.hero-gate {
+  position: absolute; right: 15px; bottom: 36px; width: 66px; height: 103px;
+  border: 4px solid #b85930; border-bottom: 0; border-radius: 40px 40px 0 0;
+  opacity: .52;
+}
+.hero-gate:before { content: ''; position: absolute; inset: 20px 10px 0; border: 3px solid #b85930; border-bottom: 0; border-radius: 30px 30px 0 0; }
+.hero-gate:after { content: ''; position: absolute; left: -12px; right: -12px; bottom: 0; height: 6px; background: #b85930; box-shadow: 0 9px 0 #e5b69a; }
+.hero-bus { position: absolute; right: 65px; bottom: 22px; z-index: 2; color: #98421b; font-size: 66px; text-shadow: 0 5px 0 #e6bea7; }
+.hero-orbit { position: absolute; width: 170px; height: 170px; right: -70px; top: 14px; border: 2px dashed #e9b39b; border-radius: 50%; }
+
+.planning-status { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid #f0e1d8; border-radius: 18px; background: #fff; color: var(--muted); font: 500 11px/1.5 Inter, sans-serif; }
+.planning-status-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; background: #edf9f3; color: #087f5b; }
+
+.results-screen { padding-top: 4px; }
+.results-screen .result-summary { border-radius: 20px; white-space: normal; font-size: 13px; }
+.result-departure { display: flex; align-items: center; gap: 8px; margin: -4px 2px 14px; color: #704b3a; font: 600 11px Inter, sans-serif; }
+.result-departure .material-symbols-outlined { color: var(--orange); font-size: 17px; }
+.result-departure a { margin-left: auto; color: var(--orange); text-decoration: none; }
+.filter-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; border-radius: 99px; background: #f4ede6; }
+.filter-tab { overflow: hidden; padding: 9px 5px; text-overflow: ellipsis; font-size: 10px; }
+.filter-tab.active { background: var(--orange); color: #fff; box-shadow: 0 3px 9px #98421b33; }
+.recommended-card.result-option { margin-bottom: 14px; padding: 17px; border: 1px solid #f0e1d8; border-radius: 22px; background: #fff; box-shadow: 0 6px 20px #3823330a; }
+.option-label { color: #352b29; font: 700 14px Inter, sans-serif; }
+.result-option .recommended-tag { padding: 5px 8px; font-size: 9px; }
+.result-option .live-in { margin-left: auto; padding: 6px 8px; font-size: 9px; }
+.result-option-main { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 19px 0 13px; }
+.result-option .trip-duration { font-size: 38px; }
+.result-option .trip-duration small { font-size: 18px; }
+.result-option .trip-kind { margin-top: 3px; font-size: 10px; }
+.result-fare { min-width: 116px; text-align: right; }
+.result-fare span, .result-fare small { display: block; color: #806d70; font: 600 8px/1.45 Inter, sans-serif; letter-spacing: .45px; }
+.result-fare b { display: block; margin: 2px 0; color: var(--orange); font: 700 19px/1.15 "Plus Jakarta Sans", sans-serif; }
+.result-fare small { font-weight: 400; letter-spacing: 0; }
+.route-chain { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 7px 1px 12px; scrollbar-width: none; }
+.route-chain::-webkit-scrollbar { display: none; }
+.route-chain-pill { display: inline-flex; align-items: center; gap: 5px; flex: none; max-width: 74%; padding: 7px 10px; border-radius: 99px; background: #98421b; color: #fff; font: 600 10px Inter, sans-serif; }
+.route-chain-pill .material-symbols-outlined { font-size: 14px; }
+.route-chain-arrow { flex: none; color: #d9b6a7; font-size: 17px; }
+.result-endpoints { display: grid; gap: 8px; padding: 11px 12px; border-radius: 15px; background: #faf2eb; }
+.result-endpoints > span { display: flex; align-items: flex-start; gap: 8px; color: #352b29; font: 500 11px/1.45 Inter, sans-serif; }
+.endpoint-dot { width: 9px; height: 9px; flex: none; margin-top: 2px; border: 2px solid #fff; border-radius: 50%; background: #8a4a65; box-shadow: 0 0 0 1px #8a4a65; }
+.endpoint-dot.end { background: var(--orange); box-shadow: 0 0 0 1px var(--orange); }
+.result-meta { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 11px 0 0; color: #806d70; font: 500 9px Inter, sans-serif; }
+.crowd-unknown { display: inline-flex; align-items: center; gap: 3px; color: #806d70; }
+.crowd-unknown .material-symbols-outlined { font-size: 14px; }
+.data-integrity-note { margin: 8px 2px 12px; color: #806d70; font: 400 9px/1.5 Inter, sans-serif; }
+
+.journey-event .subtle-note { margin: 9px 0 0; }
+.detail-summary .stat-box b { overflow-wrap: anywhere; }
+.detail-summary .stat-box span { padding: 0 3px; font-size: 9px; }
+
+.insight-hero { padding: 17px; border-radius: 22px; background: #fff; box-shadow: 0 6px 20px #3823330a; }
+.insight-hero .detail-stats { margin-top: 13px; }
+.insight-hero .stat-box { min-width: 0; }
+.insight-hero .stat-box b { font-size: 16px; }
+.insight-chart { min-height: 145px; }
+.insight-route { display: flex; justify-content: space-between; gap: 10px; padding: 11px 2px; border-bottom: 1px solid #f0e1d8; color: #352b29; font: 600 11px Inter, sans-serif; }
+.insight-route:last-child { border: 0; }
+.insight-route span:last-child { color: #806d70; font-weight: 500; text-align: right; }
+
+@media (min-width: 700px) {
+  .hero-stitch { padding-inline: 26px; }
+  .hero-stitch h1 { font-size: 34px; }
+  .recommended-card.result-option { padding: 20px; }
+}
