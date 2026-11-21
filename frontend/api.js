@@ -1,5 +1,4 @@
 const API_BASE = (window.YUKTIX_API_BASE || 'http://127.0.0.1:8002').replace(/\/$/, '')
-const cache = new Map()
 async function request(path, options = {}) {
   const { timeoutMs = 12000, ...fetchOptions } = options
   const controller = new AbortController()
@@ -46,20 +45,14 @@ export const api = {
   },
   async route(routeId) { return request(`/api/v2/routes/${encodeURIComponent(routeId)}`) },
   async searchStops(query, limit = 8) {
-    const key = query.trim().toLowerCase()
-    if (key.length < 2) return []
-    if (cache.has(key)) return cache.get(key)
-    const result = await request(`/api/v1/stops?q=${encodeURIComponent(query)}&limit=${limit}`)
-    const items = result.items || []
-    cache.set(key, items)
-    return items
+    return api.searchJourneyStops(query, limit)
   },
-  async stop(stopId) { return request(`/api/v1/stops/${encodeURIComponent(stopId)}`) },
-  async demand(stopId) { return request(`/api/v1/stops/${encodeURIComponent(stopId)}/demand`) },
-  async crowdAtStop(stopId) { return request(`/api/v1/crowding/stop/${encodeURIComponent(stopId)}`) },
-  async reportsAtStop(stopId) { return request(`/api/v1/reports/stop/${encodeURIComponent(stopId)}`) },
+  async stop(stopId) { return request(`/api/v2/stops?q=${encodeURIComponent(stopId)}&limit=1`) },
+  async demand(stopId) { return request(`/api/v2/stops?q=${encodeURIComponent(stopId)}&limit=1`) },
+  async crowdAtStop(stopId) { return request(`/api/v2/crowding/stop/${encodeURIComponent(stopId)}`) },
+  async reportsAtStop(stopId) { return request(`/api/v2/reports/stop/${encodeURIComponent(stopId)}`) },
   async submitReport(body, clientToken) {
-    return request('/api/v1/reports/crowd', { method: 'POST', headers: { 'X-CrowdWise-Client': clientToken }, body: JSON.stringify(body) })
+    return request('/api/v2/reports/crowd', { method: 'POST', headers: { 'X-CrowdWise-Client': clientToken }, body: JSON.stringify(body) })
   },
   async journeySearch(body) { return request('/api/v1/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },
   async journeySearchV2(body) { return request('/api/v2/journeys/search', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 }) },

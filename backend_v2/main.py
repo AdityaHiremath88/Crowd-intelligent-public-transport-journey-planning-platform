@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
+import sqlite3
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import duckdb
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend_v2.config import CORS_ORIGINS, DATABASE_PATH
@@ -15,6 +16,9 @@ from backend_v2.fares import estimate_leg_fare, summarize_journey_fares
 from backend_v2.routing import active_services_for_date, rank_journeys, search_journeys
 from backend_v2.schedule import load_schedule_data
 from backend_v2.schemas import JourneyLeg, JourneyOption, JourneySearchRequest, JourneySearchResponse, JourneyStop, RouteActivityObservation, RouteActivityResponse, StopItem, StopSearchResponse
+from app.schemas import CrowdReportRequest, CrowdReportResponse, CommunityReportsResponse, CommunityReportItem, CommunityCrowdResponse
+from app.services.community_store import DuplicateSubmission, RateLimitExceeded, store, utc_now
+from app.services.crowd_service import aggregate_community_reports
 
 app = FastAPI(
     title="Yuktix Backend v2",
@@ -29,7 +33,7 @@ app.add_middleware(
     allow_origins=CORS_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-CrowdWise-Client"],
 )
 
 
@@ -219,6 +223,94 @@ def search_stops(
         )
     finally:
         con.close()
+
+
+def _community_stop(stop_id: str) -> dict:
+    if not DATABASE_PATH.is_file():
+        raise HTTPException(status_code=503, detail={"code": "GTFS_DATABASE_MISSING", "message": "Stop reporting requires the GTFS import."})
+    con = duckdb.connect(str(DATABASE_PATH), read_only=True)
+    try:
+        row = con.execute("SELECT stop_id, stop_name FROM stops WHERE stop_id = ?", [stop_id]).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail={"code": "UNKNOWN_STOP", "message": "Select a stop from the Delhi GTFS list."})
+        return {"stop_id": row[0], "stop_name": row[1] or row[0]}
+    finally:
+        con.close()
+
+
+def _community_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, DuplicateSubmission):
+        return HTTPException(status_code=409, detail={"code": "DUPLICATE_REPORT", "message": "A recent report from this app is already active for this stop."})
+    if isinstance(exc, RateLimitExceeded):
+        return HTTPException(status_code=429, detail={"code": "RATE_LIMITED", "message": "Too many reports. Please try again later."})
+    return HTTPException(status_code=503, detail={"code": "COMMUNITY_STORE_UNAVAILABLE", "message": "Crowd reports are temporarily unavailable."})
+
+
+@app.post("/api/v2/reports/crowd", response_model=CrowdReportResponse, status_code=status.HTTP_201_CREATED, tags=["community reports"])
+def submit_crowd_report(
+    payload: CrowdReportRequest,
+    request: Request,
+    client_token: str = Header(..., alias="X-CrowdWise-Client", min_length=16, max_length=128),
+) -> CrowdReportResponse:
+    now = utc_now()
+    if payload.observed_at.tzinfo is None or payload.observed_at.utcoffset() is None:
+        raise HTTPException(status_code=422, detail={"code": "TIMEZONE_REQUIRED", "message": "Observation time must include a timezone."})
+    observed_at = payload.observed_at.astimezone(UTC)
+    if observed_at > now + timedelta(minutes=5) or observed_at < now - timedelta(minutes=10):
+        raise HTTPException(status_code=422, detail={"code": "OBSERVATION_TIME_INVALID", "message": "Reports must describe a crowd observation from the last ten minutes."})
+    stop = _community_stop(payload.stop_id)
+    if payload.route_id:
+        con = duckdb.connect(str(DATABASE_PATH), read_only=True)
+        try:
+            if not con.execute("SELECT 1 FROM routes WHERE route_id = ?", [payload.route_id]).fetchone():
+                raise HTTPException(status_code=422, detail={"code": "UNKNOWN_ROUTE", "message": "Select a route from the GTFS route list."})
+        finally:
+            con.close()
+    remote = request.client.host if request.client else "unknown"
+    client_key = store.privacy_key(client_token, "", "client")
+    network_key = store.privacy_key(remote, "", "network")
+    try:
+        result = store.submit_report(
+            stop_id=stop["stop_id"], stop_name=stop["stop_name"], route_id=payload.route_id,
+            category=payload.category, feedback_code=payload.feedback_code,
+            observed_at=observed_at, reporter_key=client_key, network_key=network_key, now=now,
+        )
+    except (DuplicateSubmission, RateLimitExceeded, sqlite3.Error) as exc:
+        raise _community_error(exc) from exc
+    return CrowdReportResponse(
+        report_id=result["report_id"], stop_id=stop["stop_id"], stop_name=stop["stop_name"],
+        category=payload.category, observed_at=observed_at,
+        created_at=datetime.fromisoformat(result["created_at"]),
+        expires_at=datetime.fromisoformat(result["expires_at"]),
+        stop_identity_status="gtfs_stop_id",
+    )
+
+
+@app.get("/api/v2/reports/stop/{stop_id}", response_model=CommunityReportsResponse, tags=["community reports"])
+def recent_crowd_reports(stop_id: str) -> CommunityReportsResponse:
+    _community_stop(stop_id)
+    now = utc_now()
+    try:
+        rows = store.recent_reports(stop_id, now=now)
+    except sqlite3.Error as exc:
+        raise _community_error(exc) from exc
+    items = [CommunityReportItem(**row) for row in rows]
+    return CommunityReportsResponse(
+        stop_id=stop_id, status="COMMUNITY_REPORTED" if items else "UNAVAILABLE",
+        report_count=len(items), reports=items, generated_at=now,
+        limitations=["Reports are subjective categories, not measured headcounts.", "Reports expire automatically and do not represent bus occupancy."],
+    )
+
+
+@app.get("/api/v2/crowding/stop/{stop_id}", response_model=CommunityCrowdResponse, tags=["community reports"])
+def stop_crowding(stop_id: str) -> CommunityCrowdResponse:
+    stop = _community_stop(stop_id)
+    now = utc_now()
+    try:
+        rows = store.recent_reports(stop_id, now=now)
+    except sqlite3.Error as exc:
+        raise _community_error(exc) from exc
+    return aggregate_community_reports(stop_id, stop["stop_name"], rows, now=now)
 
 
 @app.get("/api/v2/routes", tags=["routes"])

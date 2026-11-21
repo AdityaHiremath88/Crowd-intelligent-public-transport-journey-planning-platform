@@ -138,7 +138,7 @@ function render() {
   state.page=nextPage
   const pages={home:homePage,results:resultsPage,journey:journeyPage,stop:stopPage,report:reportPage,rides:ridesPage,auth:authPage,operator:operatorPage}
   app.innerHTML=(pages[state.page]||homePage)()
-  if(state.page==='stop'&&(state.stop||state.origin)?.id&&!state.stopData&&!state.stopLoading){state.stop=state.stop||state.origin;if(state.crowdMode==='stop')state.stopData={detail:state.stop,demand:null,crowd:null,reports:null};else loadStopData(state.stop)}
+  if(state.page==='stop'&&(state.stop||state.origin)?.id&&!state.stopData&&!state.stopLoading){state.stop=state.stop||state.origin;loadStopData(state.stop)}
 }
 async function loadDefaults(){
   try{
@@ -149,9 +149,10 @@ async function loadDefaults(){
 }
 async function loadStopData(stop){
   state.stopLoading=true;state.stopData=null;state.stopError=null;render()
-  const [detail,demand,crowd,reports]=await Promise.allSettled([api.stop(stop.id),api.demand(stop.id),api.crowdAtStop(stop.id),api.reportsAtStop(stop.id)])
-  state.stopData={detail:detail.status==='fulfilled'?detail.value:null,demand:demand.status==='fulfilled'?demand.value:null,demandError:demand.status==='rejected'?demand.reason:null,crowd:crowd.status==='fulfilled'?crowd.value:null,reports:reports.status==='fulfilled'?reports.value:null}
-  if(detail.status==='rejected'&&demand.status==='rejected'&&crowd.status==='rejected'&&reports.status==='rejected')state.stopError='Stop information could not be loaded. Check your connection and retry.'
+  const [detail,crowd,reports]=await Promise.allSettled([api.searchJourneyStops(stop.stop_name,8),api.crowdAtStop(stop.id),api.reportsAtStop(stop.id)])
+  const match=detail.status==='fulfilled'?detail.value.find(item=>item.id===stop.id)||stop:stop
+  state.stop={...match};state.stopData={detail:match,demand:null,crowd:crowd.status==='fulfilled'?crowd.value:null,reports:reports.status==='fulfilled'?reports.value:null}
+  if(detail.status==='rejected'&&crowd.status==='rejected'&&reports.status==='rejected')state.stopError='Stop information could not be loaded. Check your connection and retry.'
   state.stopLoading=false
   if(state.page==='stop')render()
 }
@@ -222,7 +223,7 @@ async function loadCrowdRouteActivity(){
 }
 async function refreshCrowdStop(){
   if(!state.stop)return
-  try{const matches=await api.searchJourneyStops(state.stop.stop_name,8),latest=matches.find(item=>item.id===state.stop.id);if(latest){state.stop=latest;state.stopData={detail:latest,demand:null,crowd:null,reports:null};render();toast('Stop location refreshed from the Delhi GTFS list.')}else toast('This stop is no longer in the current GTFS list.')}
+  try{await loadStopData(state.stop);if(!state.stopError)toast('Stop crowd reports refreshed.')}
   catch(error){toast(`Could not refresh the stop: ${error.message}`)}
 }
 function chooseCrowdRoute(routeId){
@@ -241,7 +242,7 @@ async function selectRoute(routeId){
 function selectStop(field,stop){
   if(field==='origin')state.origin=stop
   else if(field==='destination')state.destination=stop
-  else if(field==='stop'){state.stop=stop;state.stopError=null;if(state.page==='stop'){state.stopData={detail:stop,demand:null,crowd:null,reports:null};state.stopLoading=false;render()}else{state.stopData=null;loadStopData(stop)}}
+  else if(field==='stop'){state.stop=stop;state.stopError=null;state.stopData=null;if(state.page==='stop')loadStopData(stop);else render()}
   else if(field==='report'){state.reportStop=stop;state.stop=stop;state.reportSent=false}
   const input=document.querySelector(`[data-stop-field="${field}"]`);if(input)input.value=stop.stop_name
   if(input)input._searchVersion=(input._searchVersion||0)+1
@@ -289,7 +290,7 @@ async function clickHandler(event){
   if(action==='choose-stop')selectStop(field,{id:stopId,stop_name:stopName})
   if(action==='route-search')await searchRoutes()
   if(action==='select-route')await selectRoute(node.dataset.routeId)
-  if(action==='crowd-mode'){state.crowdMode=value;if(value==='stop'){state.stop=state.stop||state.origin;if(state.stop&&!state.stopData)state.stopData={detail:state.stop,demand:null,crowd:null,reports:null}}render()}
+  if(action==='crowd-mode'){state.crowdMode=value;if(value==='stop'){state.stop=state.stop||state.origin;if(state.stop)state.stopData=null}render();if(value==='stop'&&state.stop)loadStopData(state.stop)}
   if(action==='choose-crowd-route')chooseCrowdRoute(node.dataset.routeId)
   if(action==='sync-crowd'){if(state.crowdMode==='bus')await loadCrowdRouteActivity();else if(state.stop)await refreshCrowdStop();else toast('Search for a stop first.')}
   if(action==='report-current-crowd'){state.reportStop=state.crowdMode==='stop'?state.stop:null;state.reportRoute=state.crowdMode==='bus'?state.crowdRoute?.route_id||null:null;state.reportCategory=null;state.reportFeedback=null;state.reportSent=false;location.hash='#report'}
