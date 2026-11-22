@@ -1,6 +1,6 @@
 # Yuktix frontend
 
-Mobile-first, responsive web app for Delhi bus riders. The current runnable frontend is plain HTML, CSS, and JavaScript modules. The older `src/` React files are not loaded by the page and are not part of the build; they are retained so the earlier scaffold is not lost.
+Mobile-first, responsive web app for Delhi bus riders. The runnable frontend is plain HTML, CSS, and JavaScript modules, backed by the API described below. Its page shell is `index.html`; behavior and styling are in the sibling `app.js`, `api.js`, and CSS files.
 
 ## Run locally
 
