@@ -287,23 +287,29 @@ def process_gtfs(
                 result["execution_seconds"],
             ],
         )
-        con.register("gtfs_quality_df", __import__("pandas").DataFrame([{
-            "dataset_name": "gtfs",
-            "source_file": zip_path.name,
-            "source_sha256": source_sha256,
-            "source_size_bytes": zip_path.stat().st_size,
-            "schema_version": GTFS_SCHEMA_VERSION,
-            "pipeline_version": GTFS_PIPELINE_VERSION,
-            "generated_at": generated_at,
-            "usable_for_scheduled_routing": result["usable_for_scheduled_routing"],
-            "usable_for_map": result["usable_for_map"],
-            "service_start_date": service_window[0],
-            "service_end_date": service_window[1],
-            "total_rows": sum(loaded.values()),
-            "issue_json": json.dumps(issues),
-        }]))
-        con.execute("CREATE OR REPLACE TABLE gtfs_quality AS SELECT * FROM gtfs_quality_df")
-        con.unregister("gtfs_quality_df")
+        con.execute(
+            """CREATE OR REPLACE TABLE gtfs_quality AS SELECT
+                   CAST(? AS VARCHAR) AS dataset_name,
+                   CAST(? AS VARCHAR) AS source_file,
+                   CAST(? AS VARCHAR) AS source_sha256,
+                   CAST(? AS BIGINT) AS source_size_bytes,
+                   CAST(? AS VARCHAR) AS schema_version,
+                   CAST(? AS VARCHAR) AS pipeline_version,
+                   CAST(? AS TIMESTAMPTZ) AS generated_at,
+                   CAST(? AS BOOLEAN) AS usable_for_scheduled_routing,
+                   CAST(? AS BOOLEAN) AS usable_for_map,
+                   CAST(? AS DATE) AS service_start_date,
+                   CAST(? AS DATE) AS service_end_date,
+                   CAST(? AS BIGINT) AS total_rows,
+                   CAST(? AS VARCHAR) AS issue_json""",
+            [
+                "gtfs", zip_path.name, source_sha256, zip_path.stat().st_size,
+                GTFS_SCHEMA_VERSION, GTFS_PIPELINE_VERSION, generated_at,
+                result["usable_for_scheduled_routing"], result["usable_for_map"],
+                service_window[0], service_window[1], sum(loaded.values()),
+                json.dumps(issues),
+            ],
+        )
         result["execution_seconds"] = round(perf_counter() - run_started, 3)
         con.execute(
             "UPDATE pipeline_runs SET execution_seconds=? WHERE run_id=?",
@@ -329,9 +335,8 @@ def main() -> None:
     parser.add_argument("--zip", type=Path, default=GTFS_ZIP_PATH)
     parser.add_argument("--database", type=Path, default=DATABASE_PATH)
     args = parser.parse_args()
-    print(json.dumps(process_gtfs(args.zip.resolve(), args.database.resolve()), indent=2))
+    print(json.dumps(process_gtfs(args.zip.resolve(), args.database.resolve()), indent=2, default=str))
 
 
 if __name__ == "__main__":
     main()
-
