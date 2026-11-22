@@ -18,7 +18,7 @@ The CSV itself is the evidence used for the observed schema and counts. `created
 - The public [Delhi Open Transit Data static page](https://otd.delhi.gov.in/data/static/) lists a bus static dataset and displays a last-updated date of June 20, 2024. Its download flow requests usage/purpose and contact information.
 - The [official OTD GTFS documentation](https://otd.delhi.gov.in/documentation/) lists agency, calendar, stops, routes, trips and stop_times, and cautions that static stop times are rough estimates based on a constant-speed assumption.
 
-No GTFS archive is stored in this workspace. Do not infer that the current GTFS includes `stop_times.txt` until the actual archive has been obtained and inspected. An authorized archive can be placed at `datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip` and checked with `python -m scripts.process_gtfs`.
+The supplied archive is committed at `datasets/shareable/delhi_buses_static_gtfs_v1.zip`. Its contents were inspected and include `stop_times.txt`; its provenance and redistribution permission have not been independently confirmed. Copy it to `datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip` for local processing and run `python -m scripts.process_gtfs`.
 
 ## Alternative-source investigation (November 17, 2026)
 

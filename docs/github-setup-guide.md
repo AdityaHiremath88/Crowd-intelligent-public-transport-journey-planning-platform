@@ -6,7 +6,7 @@ This guide runs the mobile-friendly Yuktix web app and its local API on a Window
 
 - Frontend source, backend source, and the cleaned October ticket-activity bundle are in this repository.
 - The DTC route-stage workbook used by the fare estimate is included under `datasets/shareable/`.
-- The raw GTFS schedule archive and generated database are not in Git. Get an authorized Delhi bus static GTFS ZIP and place it at `datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip` before importing it.
+- The supplied GTFS schedule ZIP is included at `datasets/shareable/delhi_buses_static_gtfs_v1.zip`. Its provenance and redistribution permission have not been independently confirmed.
 - Journey search requires that GTFS archive. Historical route activity and fare-stage estimates also require the included ETM and fare-stage data to be imported into the local database.
 
 ## 1. Download the project
@@ -14,7 +14,7 @@ This guide runs the mobile-friendly Yuktix web app and its local API on a Window
 Install Git, Python 3.12, and Node.js 20 or later. Then open PowerShell and run:
 
 ```powershell
-git clone --branch contribute/yuktix-project-upload https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform.git yuktix
+git clone --branch main https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform.git yuktix
 cd yuktix
 ```
 
@@ -28,16 +28,16 @@ py -3.12 -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Obtain an authorized Delhi static GTFS ZIP and copy it to:
+Copy the included Delhi static GTFS ZIP to the importer input path:
 
 ```text
-datasets\gtfs\raw\delhi_buses_static_gtfs_v1.zip
+datasets\shareable\delhi_buses_static_gtfs_v1.zip
 ```
 
 Then import the schedule, the included cleaned October ticket activity, and the included fare-stage workbook:
 
 ```powershell
-python -m backend_v2.import_gtfs --zip datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip
+python -m backend_v2.import_gtfs --zip datasets/shareable/delhi_buses_static_gtfs_v1.zip
 python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
 python -m backend_v2.import_fare_stages --xlsx datasets/shareable/dtc-route-fare-stage-master.xlsx
 ```
@@ -69,5 +69,5 @@ Open `http://localhost:5173`. Keep both windows open while using the app. To sto
 - The app expects the backend at `http://127.0.0.1:8002`. To use a hosted or another computer's backend, change `window.YUKTIX_API_BASE` in `frontend/config.example.js` and allow the frontend origin in backend CORS settings.
 - A locally reachable backend is required for stop search, route search, journey results, fares, historical activity, and crowd reports. The page itself can load without it, but connected features will not work.
 - Schedule times are based on static GTFS and are not live arrivals. October ticket history is historical activity, not measured onboard crowding. Fare values are estimates.
-- `datasets/gtfs/raw/`, `datasets/processed/`, and local environment files are intentionally ignored by Git. Do not add API keys or other secrets to the public frontend or repository.
+- `datasets/gtfs/raw/`, `datasets/processed/`, and local environment files are intentionally ignored by Git. The shareable GTFS archive is committed under `datasets/shareable/`. Do not add API keys or other secrets to the public frontend or repository.
 - For browser UI checks, install Chrome. Run `npm test` and `npm run test:e2e` from `frontend/`; run `python -m pytest -q` from the project root.

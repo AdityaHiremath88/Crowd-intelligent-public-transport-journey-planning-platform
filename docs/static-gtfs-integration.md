@@ -2,7 +2,7 @@
 
 ## What is connected
 
-Yuktix now reads the locally saved `datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip` feed into `datasets/processed/crowdwise.duckdb`. The prior DuckDB file was retained as `datasets/processed/crowdwise_before_gtfs.duckdb`. The source ZIP is excluded from Git as local data.
+Yuktix now reads the locally saved `datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip` feed into `datasets/processed/crowdwise.duckdb`. The prior DuckDB file was retained as `datasets/processed/crowdwise_before_gtfs.duckdb`. The source ZIP is now included at `datasets/shareable/delhi_buses_static_gtfs_v1.zip` for teammate setup. The source permission and freshness have not been independently confirmed.
 
 The loaded archive has SHA-256 `8eb05d9c21e7a6b42d7b49de45cb095b70ddee5b8f7716859330c9784c322f05`. It contains two agencies, 6,862 stops, 2,574 routes, 80,357 trips, 2,737,136 stop-time rows and 965,607 shape points. The feed's `feed_info.txt` reports version `v32` and a service window of 2025-01-01 through 2040-01-01. The import passed the application's routing quality gate with zero detected issues after the importer was corrected to accept GTFS stop sequence zero and ignore macOS `._` archive metadata.
 

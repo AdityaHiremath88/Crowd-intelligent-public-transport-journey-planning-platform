@@ -6,7 +6,7 @@ Yuktix is a mobile-first Delhi transit application backed by the CrowdWise FastA
 
 Start the backend as described below, then from `frontend/` run:
 
-For a clean Windows setup on another computer, follow the [GitHub setup guide](docs/github-setup-guide.md). The static GTFS archive is intentionally not committed and must be obtained separately for journey search.
+For a clean Windows setup on another computer, follow the [GitHub setup guide](docs/github-setup-guide.md). The static GTFS archive used by this prototype is included under `datasets/shareable/`; its source permission and freshness still need independent confirmation.
 
 ```powershell
 npm install
@@ -44,7 +44,7 @@ Keep raw and processed datasets separate. The real ETM files are private/local a
 
 ```text
 datasets/etm/raw/October-Delhi.csv
-datasets/gtfs/raw/delhi_buses_static_gtfs_v1.zip  # only after authorized acquisition
+datasets/shareable/delhi_buses_static_gtfs_v1.zip  # supplied static schedule snapshot
 datasets/processed/crowdwise.duckdb
 datasets/shareable/yuktix-october-delhi-clean-data.zip  # cleaned derived Parquet bundle
 datasets/shareable/yuktix-october-delhi-known-vehicle-data.zip  # subset for exploratory vehicle grouping
