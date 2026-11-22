@@ -1,3 +1,4 @@
 datasets/processed/crowdwise.duckdb filter=lfs diff=lfs merge=lfs -text
 datasets/etm/raw/October-Delhi.csv.zip filter=lfs diff=lfs merge=lfs -text
 datasets/shareable/yuktix-october-delhi-clean-data.zip filter=lfs diff=lfs merge=lfs -text
+downloads/*.zip filter=lfs diff=lfs merge=lfs -text
