@@ -12,13 +12,60 @@ A mobile-friendly Delhi bus journey planner prototype. It searches a locally imp
 | Short technical note | [Crowd estimation method and evidence limits](docs/crowd-estimation-feasibility.md) |
 | Demo video | Pending: a short recording of search, route comparison, journey details, and crowd reporting has not been uploaded |
 
-### Proposal summary
+### Detailed proposal
 
-**Problem:** Delhi bus riders need to compare journey time with likely crowding, but static schedules alone do not describe onboard conditions.
+**Problem and goal.** Delhi bus riders need to compare travel time with likely comfort. A fast journey can involve a crowded stretch, while a later departure may offer a better ride. Yuktix addresses the Phase 1 bus-only challenge by combining static GTFS journey planning with historical ticket evidence. The main proposed contribution is a crowding estimate by route, direction, stop-to-stop segment and time of day, with its uncertainty visible to commuters and operators.
 
-**Approach:** Use GTFS stops, routes, and trips for scheduled journey options. Process the October ETM records into historical route-and-time activity and show the evidence source next to each result. Voluntary stop reports are a separate, short-lived signal. Do not label ticket activity as measured occupancy or live crowding.
+**What is working now.** The public source provides scheduled GTFS journey search, route alternatives, estimated fares where geometry supports them, historical ticket activity by route and hour, and voluntary crowd reports as a separate signal. The existing Android APK demonstrates the offline prototype. The current public implementation **does not yet reconstruct and validate passenger load for each journey segment**. Historical ticket activity must not be displayed as measured onboard occupancy or live crowding.
 
-**Data:** Static Delhi bus GTFS and October 2026 ticket data are used locally when access is authorized. The repository publishes code and synthetic tests, not the supplied datasets. Fare values are estimates from available route geometry or stop positions.
+#### Data and its role
+
+| Input | Intended use | Evidence boundary |
+| --- | --- | --- |
+| October 2026 ETM and e-ticket records | Use passenger counts, boarding time, route, recorded stops and vehicle number where present to estimate historical demand. | Ticket sales do not directly measure everyone on a bus; some riders and vehicle identifiers are missing. |
+| Static Delhi bus GTFS | Identify stops, directions, stop order and scheduled trips; find and time journey options. | A timetable does not prove that a bus ran or arrived on time. |
+| Verified bus capacities, if obtained | Translate estimated load into understandable comfort levels. | Without capacity by bus type, exact occupancy percentages and seat claims are not justified. |
+| Voluntary crowd reports | Provide separately labelled recent observations in a hosted version. | Reports are self-reported and cannot silently replace historical estimates. |
+
+The repository contains code and synthetic tests, not the supplied raw datasets. Anyone rerunning the proposed analysis needs authorized access to the ticket and GTFS inputs. The [technical note](docs/crowd-estimation-feasibility.md) describes what the present code actually computes.
+
+#### Proposed crowding pipeline
+
+1. **Clean and audit tickets.** Parse timestamps in India Standard Time; normalize route, direction and stop names; preserve passenger counts; record missing and inconsistent fields. Measure how many records survive each rule. Do not treat a generated ID as evidence that two tickets belong to different runs.
+2. **Match ticket stops to GTFS.** Match boarding and intended alighting names against stops on the stated route and direction, using aliases and stop order to resolve ambiguity. Flag unmatched, reversed and uncertain pairs instead of forcing a confident match.
+3. **Infer bus runs.** Group compatible records using vehicle number, route, direction, date and plausible trip time. Separate repeated runs of the same vehicle with schedule and stop progression. Where a run cannot be distinguished, retain only a coarser route/time estimate and mark its uncertainty.
+4. **Estimate load on each segment.** For an inferred run, compute `load after stop = load before stop + boarded passengers − alighted passengers`. Carry the result over consecutive GTFS stops. Inspect negative or implausibly high values; retain matched-ticket counts and reconstruction quality for every segment. This is *ticketed passenger load*, before accounting for missing riders.
+5. **Build historical profiles.** Aggregate comparable runs by route, direction, adjacent stop pair, day type and time band. Store a central estimate, spread, sample count and coverage. A route-wide ticket count is not a substitute for segment load.
+6. **Create commuter labels only when supported.** With adequate samples and trusted capacity information, map load ranges to labels such as seats likely, standing room and crowded. Show that the estimate is historical, the applicable time band, and its confidence. Otherwise show that a crowd estimate is unavailable.
+7. **Validate.** Hold out whole weeks and compare predicted profiles with held-out runs. Report matching coverage, load error, sample sizes, weekday/weekend differences and rush-hour patterns. Investigate corridors and hours that contradict known patterns.
+
+#### Journey planner and user outputs
+
+The rider chooses an origin, destination and departure time. GTFS supplies feasible scheduled bus journeys, travel time and changes. Each result should show the crowding profile for the **segments the rider actually travels**, not just a route-wide score. The comparison should make a fastest journey and a more comfortable journey easy to identify; it can also show a later scheduled departure if available. Comfort-based ordering must wait until the segment model is validated. Fares remain explicitly estimated where an official fare-stage match cannot be confirmed.
+
+Operators should be able to query recurring high-load corridors by route, direction, segment, day type and time band, alongside sample count and confidence. This can guide investigation of overloaded hours without treating low-coverage estimates as established facts. A rerunnable pipeline, its output schema, and validation results are necessary before claiming this operator view is complete.
+
+#### Limitations and evidence gaps
+
+> **Current evidence boundary:** The public prototype supports scheduled journeys and descriptive historical ticket activity. It does **not** yet provide verified stop-by-stop occupancy, a validated comfort ranking, live bus crowding, or calibrated seat availability. Screens and submission material should not imply these features exist.
+
+- **Missing passengers:** Pass holders and other unticketed riders may be absent. Any uplift factor would be an assumption until independently measured and tested for sensitivity.
+- **Ambiguous runs:** Vehicle numbers can be null; one vehicle can complete several trips. Tickets may not identify the exact scheduled trip or its initial passenger load.
+- **Uncertain stops and destinations:** Ticket stop names can differ from GTFS. An intended destination is not an observed alighting, and uncertain matches reduce segment coverage.
+- **Unknown capacity:** Vehicle sizes and seating vary. Passenger counts alone cannot support precise occupancy percentages or claims that seats are available.
+- **Short observation window:** Four to five weeks may show regular weekly patterns but cannot establish seasonal, festival, disruption or monsoon behavior. Sparse route/time bands have wider uncertainty.
+- **Schedules versus reality:** Static GTFS does not verify actual arrivals, cancellations or transfer success. Historical profiles are not real-time predictions.
+- **Prototype completeness:** The public source currently exposes descriptive route/hour ticket activity rather than the full validated segment pipeline. Held-out-week metrics and a short end-to-end demo video remain to be produced.
+
+#### Submission checklist
+
+| Requirement | Status |
+| --- | --- |
+| Proposal | Problem, data, proposed method, user outputs and limitations are described above. |
+| Working prototype | GTFS journey search and the existing offline Android release are available; validated segment crowding remains planned work. |
+| Public source and setup | Code and setup instructions are below; supplied datasets are excluded. |
+| Short technical note | [Method, assumptions and evidence limits](docs/crowd-estimation-feasibility.md); add matching rates and validation metrics once measured. |
+| Short demo video | Pending; record only the features that are working. |
 
 ### Install the existing Android prototype
 
