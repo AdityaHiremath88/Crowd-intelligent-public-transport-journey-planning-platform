@@ -2,6 +2,28 @@
 
 A mobile-friendly Delhi bus journey planner prototype. It searches a locally imported GTFS timetable, estimates fares from available route geometry, and can display historical ticket activity and voluntary crowd reports. It does not provide live bus occupancy or verified seat availability.
 
+## Prototype submission
+
+| Item | Where to find it |
+| --- | --- |
+| Proposal | The problem, approach, and data summary below |
+| Working prototype | [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.1/Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk) |
+| Source code and setup | This repository and the quick-start steps below |
+| Short technical note | [Crowd estimation method and evidence limits](docs/crowd-estimation-feasibility.md) |
+| Demo video | Pending: a short recording of search, route comparison, journey details, and crowd reporting has not been uploaded |
+
+### Proposal summary
+
+**Problem:** Delhi bus riders need to compare journey time with likely crowding, but static schedules alone do not describe onboard conditions.
+
+**Approach:** Use GTFS stops, routes, and trips for scheduled journey options. Process the October ETM records into historical route-and-time activity and show the evidence source next to each result. Voluntary stop reports are a separate, short-lived signal. Do not label ticket activity as measured occupancy or live crowding.
+
+**Data:** Static Delhi bus GTFS and October 2026 ticket data are used locally when access is authorized. The repository publishes code and synthetic tests, not the supplied datasets. Fare values are estimates from available route geometry or stop positions.
+
+### Install the existing Android prototype
+
+Tap [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.1/Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk) on your phone. You can also find the file under **Assets** on the [release page](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/tag/v1.4.1). Open the downloaded file and allow installation from your browser or Files app if Android prompts you. The APK contains an offline data snapshot; its schedules and ticket activity are historical, not live. The source in this repository is maintained separately from that previously built APK.
+
 ## Repository map
 
 | Folder | Purpose |
@@ -14,7 +36,7 @@ A mobile-friendly Delhi bus journey planner prototype. It searches a locally imp
 | `docs/` | Data provenance, API contract, limitations, and setup details |
 | `datasets/` | Empty local input folders; data is intentionally excluded from Git |
 
-The Android packages and the two recent local APK versions are not part of this repository.
+The earlier v1.4.1 APK is available through GitHub Releases. The two recent local APK versions are not published here.
 
 ## Quick start on Windows
 
@@ -70,25 +92,3 @@ Browser workflow tests require Chrome: `npm run test:e2e`.
 - Historical ticket activity does not measure actual passengers on a bus. Do not present it as live crowding or seats available.
 
 The current code is a prototype, not a production transit service. See the [API contract](docs/backend-v2-api-contract.md) and [known limitations](docs/known-limitations.md).
-
-## Prototype submission
-
-| Item | Where to find it |
-| --- | --- |
-| Proposal | The problem, approach, and data summary below |
-| Working prototype | [Download the existing offline Android APK from Releases](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/latest) |
-| Source code and setup | This repository and the quick-start steps above |
-| Short technical note | [Crowd estimation method and evidence limits](docs/crowd-estimation-feasibility.md) |
-| Demo video | Pending: a short recording of search, route comparison, journey details, and crowd reporting has not been uploaded |
-
-### Proposal summary
-
-**Problem:** Delhi bus riders need to compare journey time with likely crowding, but static schedules alone do not describe onboard conditions.
-
-**Approach:** Use GTFS stops, routes, and trips for scheduled journey options. Process the October ETM records into historical route-and-time activity and show the evidence source next to each result. Voluntary stop reports are a separate, short-lived signal. Do not label ticket activity as measured occupancy or live crowding.
-
-**Data:** Static Delhi bus GTFS and October 2026 ticket data are used locally when access is authorized. The repository publishes code and synthetic tests, not the supplied datasets. Fare values are estimates from available route geometry or stop positions.
-
-### Install the existing Android prototype
-
-Open the [GitHub Releases page](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/latest) on your Android phone, expand **Assets**, and download `Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk`. Open the downloaded file and allow installation from your browser or Files app if Android prompts you. The APK contains an offline data snapshot; its schedules and ticket activity are historical, not live. The source in this repository is maintained separately from that previously built APK.
