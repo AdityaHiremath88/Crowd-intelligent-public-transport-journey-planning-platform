@@ -22,7 +22,7 @@ A mobile-friendly Delhi bus journey planner prototype. It searches a locally imp
 
 ### Install the existing Android prototype
 
-Tap [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.1/Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk) on your phone. You can also find the file under **Assets** on the [release page](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/tag/v1.4.1). Open the downloaded file and allow installation from your browser or Files app if Android prompts you. The APK contains an offline data snapshot; its schedules and ticket activity are historical, not live. The source in this repository is maintained separately from that previously built APK.
+Tap [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.1/Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk) on your phone. You can also find the file under **Assets** on the [release page](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/tag/v1.4.1). Open the downloaded file and allow installation from your browser or Files app if Android prompts you. The APK contains an offline GTFS schedule and aggregate ticket-activity snapshot; its information is historical, not live. Confirm the data provider's redistribution terms before promoting the APK more widely. The source in this repository is maintained separately from that previously built APK.
 
 ## Repository map
 
