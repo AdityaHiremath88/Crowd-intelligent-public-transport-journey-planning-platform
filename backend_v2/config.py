@@ -24,13 +24,13 @@ REPORT_PATH = _path_setting(
     "YUKTIX_V2_GTFS_REPORT", "outputs/yuktix_v2_gtfs_import.json"
 )
 ETM_BUNDLE_PATH = _path_setting(
-    "YUKTIX_V2_ETM_BUNDLE", "datasets/shareable/yuktix-october-delhi-clean-data.zip"
+    "YUKTIX_V2_ETM_BUNDLE", "datasets/etm/raw/yuktix-october-delhi-clean-data.zip"
 )
 ETM_IMPORT_REPORT_PATH = _path_setting(
     "YUKTIX_V2_ETM_REPORT", "outputs/yuktix_v2_etm_import.json"
 )
 FARE_STAGES_PATH = _path_setting(
-    "YUKTIX_V2_FARE_STAGES_XLSX", "datasets/shareable/dtc-route-fare-stage-master.xlsx"
+    "YUKTIX_V2_FARE_STAGES_XLSX", "datasets/etm/raw/dtc-route-fare-stage-master.xlsx"
 )
 FARE_STAGE_IMPORT_REPORT_PATH = _path_setting(
     "YUKTIX_V2_FARE_STAGE_REPORT", "outputs/yuktix_v2_fare_stage_import.json"

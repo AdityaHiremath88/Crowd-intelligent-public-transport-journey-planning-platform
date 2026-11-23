@@ -68,17 +68,17 @@ The capabilities endpoint is already available. Future backend work includes ope
 
 ## Data and import commands
 
-GTFS import writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. The ETM importer adds route/time aggregates from the full cleaned bundle to that same database. The raw ticket and GTFS archives and local DuckDB remain outside Git. The user-provided route-stage workbook is included under `datasets/shareable/` so fare estimates can be reproduced.
+GTFS import writes only to `YUKTIX_V2_DATABASE_PATH`, defaulting to `datasets/processed/yuktix_v2.duckdb`. The ETM importer adds route/time aggregates from an authorized cleaned bundle to that same database. The ticket data, GTFS archive, optional fare-stage workbook, and local DuckDB remain outside Git.
 
 ```powershell
 python -m backend_v2.import_gtfs --zip path/to/delhi_buses_static_gtfs_v1.zip
-python -m backend_v2.import_etm --zip datasets/shareable/yuktix-october-delhi-clean-data.zip
+python -m backend_v2.import_etm --zip datasets/etm/raw/yuktix-october-delhi-clean-data.zip
 ```
 
 Import the DTC route-stage workbook:
 
 ```powershell
-python -m backend_v2.import_fare_stages --xlsx datasets/shareable/dtc-route-fare-stage-master.xlsx
+python -m backend_v2.import_fare_stages --xlsx datasets/etm/raw/dtc-route-fare-stage-master.xlsx
 ```
 
 The v2 API runs alongside the existing service on port 8002:

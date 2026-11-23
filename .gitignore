@@ -41,8 +41,13 @@ datasets/**/processed/*
 !datasets/**/processed/.gitkeep
 datasets/community/*
 !datasets/community/.gitkeep
+datasets/shareable/
+downloads/
 outputs/*
 !outputs/.gitkeep
 *.duckdb
 *.duckdb.wal
 *.sqlite3
+*.apk
+*.keystore
+*.jks

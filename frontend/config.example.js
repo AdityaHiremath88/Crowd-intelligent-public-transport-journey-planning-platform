@@ -1,3 +1,2 @@
-// Copy this file to config.js and set the backend URL for your environment.
-// Example local rebuilt backend: http://localhost:8001
+// This file is loaded by index.html. Set only a backend URL here; never add credentials.
 window.YUKTIX_API_BASE = 'http://127.0.0.1:8002'

@@ -6,7 +6,7 @@ Mobile-first, responsive web app for Delhi bus riders. The runnable frontend is 
 
 Requirements: Python 3.11+ and Node.js 20+.
 
-1. Start the rebuilt v2 FastAPI backend from the repository root at `http://127.0.0.1:8002` (import GTFS and the cleaned ETM bundle first; see the root README).
+1. Start the v2 FastAPI backend from the repository root at `http://127.0.0.1:8002` after importing an authorized GTFS feed. Historical ETM activity is optional; see the root README.
 2. From this folder, run `npm install` once, then `npm run dev`.
 3. Open `http://localhost:5173` (use `localhost`, which is allowed by the backend CORS defaults).
 
@@ -53,4 +53,4 @@ Most requests have a 12-second timeout; the first journey search after a backend
 
 ## Current implementation limits
 
-This is a working prototype for schedule-based journey planning, stop lookup, historical ticket activity, community reports, and operator analytics. The GTFS snapshot's publisher authorization and currentness have not been independently confirmed; the source describes stop times as rough estimates. Live vehicle positions are intentionally hidden from riders. Admin authentication/authorization is absent, so Operator Insights is historical analytics, not a protected operator console.
+This is a prototype for schedule-based journey planning, stop lookup, historical ticket activity, community reports, and operator analytics. No GTFS or ETM dataset is shipped in this repository. Live vehicle positions are intentionally hidden from riders. Admin authentication/authorization is absent, so Operator Insights is historical analytics, not a protected operator console.
