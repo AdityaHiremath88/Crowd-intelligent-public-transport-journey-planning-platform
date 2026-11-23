@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.yuktix.delhitransit'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.yuktix.delhitransit'
+        minSdk 21
+        targetSdk 28
+        versionCode 12
+        versionName '1.4.3'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    androidResources {
+        noCompress += ['gz', 'woff2']
+    }
+}

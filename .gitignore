@@ -43,6 +43,7 @@ datasets/community/*
 !datasets/community/.gitkeep
 datasets/shareable/
 downloads/
+android/app/src/main/assets/offline.db.gz
 outputs/*
 !outputs/.gitkeep
 *.duckdb

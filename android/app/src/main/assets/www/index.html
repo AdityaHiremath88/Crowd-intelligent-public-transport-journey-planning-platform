@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fff8f3"><meta name="description" content="Yuktix helps Delhi riders plan calmer bus journeys."><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/yuktix-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/yuktix-icon.svg"><title>Yuktix · Delhi Transit Grid</title>
+
+<link rel="stylesheet" href="/app.css?v=journey-controls-5"><link rel="stylesheet" href="/app-extra.css"><link rel="stylesheet" href="/app-auth.css?v=auth-orbit-1"><link rel="stylesheet" href="/app-interactions.css"><link rel="stylesheet" href="/app-stitch.css?v=home-screen-2">
+<link rel="stylesheet" href="/fonts.css">
+<script>window.YUKTIX_API_BASE = window.location.origin;
+(function(){
+ const originalFetch=window.fetch.bind(window);
+ window.fetch=async function(input,init={}){
+  const rawUrl=typeof input==='string'?input:input.url;
+  const url=new URL(rawUrl,location.href);
+  const method=(init.method||(typeof Request!=='undefined'&&input instanceof Request?input.method:'GET')).toUpperCase();
+  if(url.origin===location.origin&&(url.pathname.startsWith('/api/')||url.pathname==='/health')&&window.YuktixOffline){
+   const headers=new Headers(init.headers||(typeof Request!=='undefined'&&input instanceof Request?input.headers:undefined));
+   const body=typeof init.body==='string'?init.body:'';
+   const envelope=JSON.parse(window.YuktixOffline.requestWithToken(url.pathname+url.search,method,body,headers.get('X-CrowdWise-Client')||''));
+   return new Response(JSON.stringify(envelope.payload),{status:envelope.status||200,headers:{'Content-Type':'application/json'}});
+  }
+  return originalFetch(input,init);
+ };
+})();</script>
+</head>
+<body><div class="app-shell"><div id="app" aria-live="polite"></div><div id="toast" class="toast" role="status" aria-live="polite"></div></div><script src="/config.example.js?v=journey-controls-5"></script><script type="module" src="/app.js?v=auth-orbit-1"></script><script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}))</script></body></html>

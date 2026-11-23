@@ -8,7 +8,7 @@ A mobile-friendly Delhi bus journey planner prototype. It searches a locally imp
 | --- | --- |
 | Proposal | The problem, approach, and data summary below |
 | Working prototype | [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.1/Yuktix-Delhi-Transit-Web-Offline-v1.4.1.apk) |
-| Source code and setup | This repository and the quick-start steps below |
+| Source code and setup | [Browse Android Studio source](android/) or [download the complete v1.4.3 source ZIP](https://github.com/AdityaHiremath88/Crowd-intelligent-public-transport-journey-planning-platform/releases/download/v1.4.3-source/Yuktix-Delhi-Transit-v1.4.3-Android-Studio.zip); web and backend setup is below |
 | Short technical note | [Crowd estimation method and evidence limits](docs/crowd-estimation-feasibility.md) |
 | Demo video | Pending: a short recording of search, route comparison, journey details, and crowd reporting has not been uploaded |
 
@@ -29,6 +29,7 @@ Tap [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-inte
 | Folder | Purpose |
 | --- | --- |
 | `frontend/` | Responsive web app and browser tests |
+| `android/` | Existing v1.4.3 Android Studio source, without the bundled database |
 | `backend_v2/` | Current GTFS journey and fare API, data importers |
 | `app/` | Shared report storage and legacy API modules used by the current backend |
 | `scripts/` | Dataset processing and validation commands |
@@ -36,7 +37,7 @@ Tap [Download Android APK v1.4.1](https://github.com/AdityaHiremath88/Crowd-inte
 | `docs/` | Data provenance, API contract, limitations, and setup details |
 | `datasets/` | Empty local input folders; data is intentionally excluded from Git |
 
-The earlier v1.4.1 APK is available through GitHub Releases. The two recent local APK versions are not published here.
+The earlier v1.4.1 APK and the separate v1.4.3 Android Studio source archive are available through GitHub Releases. The two recent local APK versions are not published here. The source archive includes the offline data snapshot; the browsable `android/` folder excludes it.
 
 ## Quick start on Windows
 

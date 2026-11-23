@@ -1,0 +1,7 @@
+.origin-row { z-index: 10; }
+.destination-row { z-index: 5; }
+.swap-line { z-index: 1; }
+.time-chip input { max-width: 9.5rem; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; }
+.text-link, [data-action="retry-stop"], [data-action="retry-capabilities"] { cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #98421b; outline-offset: 2px; }
+input[data-stop-field="origin"]:focus-visible, input[data-stop-field="destination"]:focus-visible { outline: 0; outline-offset: 0; box-shadow: none; }
